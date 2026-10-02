@@ -1,0 +1,6 @@
+<fonts>
+    <font id="FaceSmall" filename="face_small.fnt" antialias="true" />
+    <font id="FaceLarge" filename="face_large.fnt" antialias="true" />
+    <font id="FaceLegendSmall" filename="legend_small.fnt" antialias="true" />
+    <font id="FaceLegendLarge" filename="legend_large.fnt" antialias="true" />
+</fonts>

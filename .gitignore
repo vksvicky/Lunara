@@ -1,0 +1,15 @@
+bin/
+gen/
+*.prg
+.DS_Store
+__pycache__/
+*.pyc
+developer_key.pem
+developer_key.der
+
+# Reports and captures. Baselines stay so visual diffs have a reference.
+test_output/baselines_backup_*/
+test_output/diffs/
+test_output/current/
+test_output/*.txt
+test_output/*.log

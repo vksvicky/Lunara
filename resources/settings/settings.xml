@@ -1,0 +1,29 @@
+<settings>
+    <setting propertyKey="@Properties.Language" title="@Strings.LanguageTitle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.LanguageAuto</listEntry>
+            <listEntry value="1">@Strings.LanguageEnglish</listEntry>
+            <listEntry value="2">@Strings.LanguageFrench</listEntry>
+            <listEntry value="3">@Strings.LanguageSpanish</listEntry>
+            <listEntry value="4">@Strings.LanguageChineseSimplified</listEntry>
+            <listEntry value="5">@Strings.LanguageChineseTraditional</listEntry>
+            <listEntry value="6">@Strings.LanguageJapaneseKanji</listEntry>
+            <listEntry value="7">@Strings.LanguageJapaneseHiragana</listEntry>
+            <listEntry value="8">@Strings.LanguageJapaneseKatakana</listEntry>
+            <listEntry value="9">@Strings.LanguageHindi</listEntry>
+            <listEntry value="10">@Strings.LanguageItalian</listEntry>
+            <listEntry value="11">@Strings.LanguageGerman</listEntry>
+        </settingConfig>
+    </setting>
+
+    <setting propertyKey="@Properties.BatteryStyle" title="@Strings.BatteryStyleTitle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.BatteryStyleFollow</listEntry>
+            <listEntry value="1">@Strings.BatteryStyleClassic</listEntry>
+            <listEntry value="2">@Strings.BatteryStyleMorning</listEntry>
+            <listEntry value="3">@Strings.BatteryStyleDay</listEntry>
+            <listEntry value="4">@Strings.BatteryStyleEvening</listEntry>
+            <listEntry value="5">@Strings.BatteryStyleNight</listEntry>
+        </settingConfig>
+    </setting>
+</settings>

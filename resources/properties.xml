@@ -1,0 +1,4 @@
+<properties>
+    <property id="Language" type="number">0</property>
+    <property id="BatteryStyle" type="number">0</property>
+</properties>

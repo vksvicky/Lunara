@@ -1,0 +1,23 @@
+<strings>
+    <string id="LanguageTitle">Idioma</string>
+    <string id="LanguageAuto">Como el reloj</string>
+    <string id="AppName">Lunara</string>
+    <string id="LanguageEnglish">English</string>
+    <string id="LanguageFrench">Français</string>
+    <string id="LanguageSpanish">Español</string>
+    <string id="LanguageChineseSimplified">简体中文</string>
+    <string id="LanguageChineseTraditional">繁體中文</string>
+    <string id="LanguageJapaneseKanji">日本語（漢字）</string>
+    <string id="LanguageJapaneseHiragana">日本語（ひらがな）</string>
+    <string id="LanguageJapaneseKatakana">日本語（カタカナ）</string>
+    <string id="LanguageHindi">हिन्दी</string>
+    <string id="LanguageItalian">Italiano</string>
+    <string id="LanguageGerman">Deutsch</string>
+    <string id="BatteryStyleTitle">Colores de la batería</string>
+    <string id="BatteryStyleFollow">Según la hora</string>
+    <string id="BatteryStyleClassic">Verde, ámbar, rojo</string>
+    <string id="BatteryStyleMorning">Mañana</string>
+    <string id="BatteryStyleDay">Día</string>
+    <string id="BatteryStyleEvening">Tarde</string>
+    <string id="BatteryStyleNight">Noche</string>
+</strings>
