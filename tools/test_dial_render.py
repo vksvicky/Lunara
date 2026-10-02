@@ -1,14 +1,16 @@
 """The dial bitmap is ivory, circular, and keeps a dark moon well."""
 
+import math
 import unittest
 
-from dial_layout import DialLayout
+from dial_layout import DialLayout, clock_angle
 from dial_render import render_dial, render_moon
 
 
 def _is_bright(pixel) -> bool:
+    """Lit moon surface. The navy sky and the covered dark side do not count."""
     red, green, blue, alpha = pixel
-    return alpha > 200 and red > 170 and green > 160 and blue > 130
+    return alpha > 200 and red > 175 and green > 165 and (red + green) > blue * 2
 
 
 def _bright_count(image) -> int:
@@ -34,7 +36,7 @@ def _star_pixels(image) -> int:
     count = 0
     for pixel in image.get_flattened_data():
         red, green, blue, alpha = pixel
-        if alpha > 200 and red > 190 and green > 190 and blue > 190:
+        if alpha > 200 and red > 230 and green > 200 and 120 < blue < 190:
             count += 1
     return count
 
@@ -53,6 +55,31 @@ class DialRenderTests(unittest.TestCase):
         self.assertGreater(green, 210)
         self.assertGreater(red, blue + 10)
         self.assertEqual(image.getpixel((0, 0))[3], 0)
+
+    def test_cream_field_has_hour_batons_and_no_minute_track(self):
+        """The mockup prints Romans and hour lines. The minute track is on the case."""
+        image = render_dial(240)
+        layout = DialLayout(240)
+        minute = clock_angle(1, 60)
+        rim_x = int(round(layout.center[0] + layout.radius * 0.96 * math.cos(minute)))
+        rim_y = int(round(layout.center[1] + layout.radius * 0.96 * math.sin(minute)))
+        red, green, blue, alpha = image.getpixel((rim_x, rim_y))
+        self.assertEqual(alpha, 255)
+        self.assertGreater(red, 220)
+        self.assertGreater(green, 210)
+
+        hour = clock_angle(2, 12)
+        mark_x = int(round(layout.center[0] + layout.radius * 0.80 * math.cos(hour)))
+        mark_y = int(round(layout.center[1] + layout.radius * 0.80 * math.sin(hour)))
+        self.assertTrue(_has_ink(image, mark_x, mark_y))
+
+    def test_month_and_weekday_share_a_recessed_frame(self):
+        image = render_dial(240)
+        layout = DialLayout(240)
+        field = image.getpixel((int(layout.center[0] + layout.radius * 0.55), int(layout.month_center[1])))
+        for window in (layout.month_window, layout.weekday_window):
+            floor = image.getpixel((int(window.center[0]), int(window.center[1])))
+            self.assertLess(sum(floor[:3]), sum(field[:3]) - 12, window.center)
 
     def test_moon_well_is_dark_blue(self):
         layout = DialLayout(240)
@@ -73,7 +100,7 @@ class DialRenderTests(unittest.TestCase):
     def test_side_legends_are_left_blank_for_live_text(self):
         layout = DialLayout(240)
         image = render_dial(240)
-        for point in (layout.automatic_center, layout.perpetual_center):
+        for point in (layout.automatic_center, layout.battery_text_center):
             x = int(round(point[0]))
             y = int(round(point[1]))
             ink = 0
@@ -96,7 +123,9 @@ class MoonRenderTests(unittest.TestCase):
         full_at, full_count = _bright_centroid(full)
         _new_at, new_count = _bright_centroid(new)
         self.assertGreater(full_count, max(1, new_count) * 3)
-        self.assertAlmostEqual(full_at[0], (full.width - 1) / 2.0, delta=full.width * 0.08)
+        middle = (full.width - 1) / 2.0
+        self.assertAlmostEqual(full_at[0], middle, delta=full.width * 0.08)
+        self.assertAlmostEqual(full_at[1], middle, delta=full.height * 0.08)
 
     def test_moon_travels_from_left_to_right_across_the_month(self):
         waxing_at, waxing_count = _bright_centroid(render_moon(96, 0.25))
@@ -107,15 +136,34 @@ class MoonRenderTests(unittest.TestCase):
         self.assertLess(waxing_at[0], middle - 96 * 0.08)
         self.assertGreater(waning_at[0], middle + 96 * 0.08)
 
-    def test_new_moon_is_a_starry_sky_with_the_moon_off_center(self):
+    def test_new_moon_is_a_starry_sky(self):
         image = render_moon(96, 0.0)
-        red, green, blue, alpha = image.getpixel((48, 48))
-        self.assertEqual(alpha, 255)
-        self.assertGreater(blue, red)
-        self.assertGreater(blue, green)
+        for point in ((48, 24), (48, 48), (48, 78)):
+            red, green, blue, alpha = image.getpixel(point)
+            self.assertEqual(alpha, 255, point)
+            self.assertGreater(blue, red, point)
+            self.assertGreater(blue, green, point)
         stars = _star_pixels(image)
         self.assertGreater(stars, 4)
         self.assertLess(stars, 90)
+
+    def test_unlit_part_hides_behind_the_window(self):
+        """Waxing shows the lit face on the left. The rest of the well stays sky."""
+        image = render_moon(96, 0.25)
+        red, green, blue, alpha = image.getpixel((80, 48))
+        self.assertEqual(alpha, 255)
+        self.assertGreater(blue, red)
+        self.assertGreater(blue, green)
+
+    def test_full_moon_shows_a_face(self):
+        image = render_moon(96, 0.5)
+        tones = set()
+        for y in range(30, 66):
+            for x in range(30, 66):
+                red, green, blue, alpha = image.getpixel((x, y))
+                if alpha > 200 and red > 80 and not (blue > red and blue > green):
+                    tones.add((red, green, blue))
+        self.assertGreater(len(tones), 6)
 
     def test_quarter_sits_between_new_and_full(self):
         new_moon = _bright_count(render_moon(64, 0.0))

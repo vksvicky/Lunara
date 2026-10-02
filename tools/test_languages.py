@@ -148,17 +148,11 @@ class LanguageCatalogTests(unittest.TestCase):
             brand_right = layout.center[0] + half + gap
             for label in ("100%", "--%"):
                 width = _width(label, "eng", px)
-                left = layout.battery_center[0] - width / 2
-                right = layout.battery_center[0] + width / 2
+                left = layout.battery_text_center[0] - width / 2
+                right = layout.battery_text_center[0] + width / 2
                 self.assertGreater(left, nine.x + pad, f"{size} {label}")
                 self.assertLess(right, brand_left, f"{size} {label}")
-            for lang in LANGUAGES:
-                for line in lang.perpetual:
-                    line_w = _width(line, lang.key, px)
-                    line_left = layout.perpetual_center[0] - line_w / 2
-                    line_right = layout.perpetual_center[0] + line_w / 2
-                    self.assertGreater(line_left, brand_right, f"{size} {lang.key} {line}")
-                    self.assertLess(line_right, three.x - pad, f"{size} {lang.key} {line}")
+            self.assertLess(brand_right, three.x - pad)
 
 
 class BatteryTextTests(unittest.TestCase):
@@ -175,7 +169,7 @@ class BatteryTextTests(unittest.TestCase):
         layout = DialLayout(454)
         battery = layout.battery_center
         self.assertLess(battery[0], layout.center[0])
-        self.assertAlmostEqual(battery[1], layout.perpetual_center[1], delta=1)
+        self.assertGreater(layout.battery_text_center[1], battery[1])
         self.assertGreater(battery[1], layout.weekday_window.center[1])
         self.assertLess(battery[1], layout.subdial_center[1])
 

@@ -14,7 +14,6 @@ size, checks the layout, and writes test_output/visual_report.html.
 from __future__ import annotations
 
 import argparse
-import math
 import os
 import re
 import shutil
@@ -29,7 +28,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 
 from battery_style import battery_color  # noqa: E402
 from dial_layout import DialLayout, calendar_on, moon_phase  # noqa: E402
-from dial_render import render_dial, render_moon  # noqa: E402
+from dial_render import paint_battery, paint_date_hand, paint_embossed, paint_hands, render_dial, render_moon  # noqa: E402
 from languages import (  # noqa: E402
     FACE_LARGE_PX,
     FACE_SMALL_PX,
@@ -46,7 +45,6 @@ DIFFS_DIR = os.path.join(ROOT, "test_output", "diffs")
 SANS = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
 DEVA = "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc"
 INK = (38, 34, 30, 255)
-GOLD = (196, 164, 106, 255)
 
 DEVICES = [
     ("fenix7s", 240, "240×240 MIP", "Fenix 7S / 7S Pro"),
@@ -152,39 +150,16 @@ def render_face(size: int, language_key: str, battery: float, with_hands: bool) 
     legend_px = LEGEND_LARGE_PX if size >= 390 else LEGEND_SMALL_PX
     font = _font("deva" if language_key == "hin" else "sans", pixels)
     legend = _font("deva" if language_key == "hin" else "sans", legend_px)
-    draw = ImageDraw.Draw(image)
+    paint_date_hand(image, layout, day)
+    paint_battery(image, layout, battery)
     # Classic green/amber/red so a screenshot does not change when the hour changes.
     charge = battery_color(battery, 1, 12)
-    draw.text(layout.battery_center, format_battery(battery), font=legend, fill=charge + (255,), anchor="mm")
-    draw.text(layout.month_center, lang.months[month - 1], font=font, fill=INK, anchor="mm")
-    draw.text(layout.weekday_window.center, lang.weekdays[weekday - 1], font=font, fill=INK, anchor="mm")
-    draw.text(layout.date_window.center, str(day), font=font, fill=INK, anchor="mm")
-    gap = layout.radius * 0.06
-    px, py = layout.perpetual_center
-    draw.text((px, py - gap), lang.perpetual[0], font=legend, fill=INK, anchor="mm")
-    draw.text((px, py + gap), lang.perpetual[1], font=legend, fill=INK, anchor="mm")
+    paint_embossed(image, format_battery(battery), layout.battery_text_center, legend, charge + (255,))
+    paint_embossed(image, lang.months[month - 1], layout.month_center, font, INK)
+    paint_embossed(image, lang.weekdays[weekday - 1], layout.weekday_window.center, font, INK)
     if with_hands:
-        _draw_hands(draw, layout)
+        paint_hands(image, layout)
     return _flatten(image)
-
-
-def _draw_hands(draw: ImageDraw.ImageDraw, layout: DialLayout) -> None:
-    cx, cy = layout.center
-    radius = layout.radius
-    minute_angle = (10 / 60.0) * math.tau - math.pi / 2
-    hour_angle = (10 / 12.0) * math.tau + (10 / 60.0) * (math.pi / 6) - math.pi / 2
-    _hand(draw, cx, cy, hour_angle, radius * 0.46, max(3, int(radius * 0.018)))
-    _hand(draw, cx, cy, minute_angle, radius * 0.66, max(2, int(radius * 0.012)))
-    cap = max(2, int(radius * 0.028))
-    draw.ellipse((cx - cap, cy - cap, cx + cap, cy + cap), fill=GOLD)
-
-
-def _hand(draw, cx, cy, angle, length, width) -> None:
-    draw.line(
-        (cx, cy, cx + length * math.cos(angle), cy + length * math.sin(angle)),
-        fill=INK,
-        width=width,
-    )
 
 
 def _paint_count(image: Image.Image, x: float, y: float, half: int) -> int:
@@ -218,24 +193,25 @@ def validate(image: Image.Image, layout: DialLayout, with_hands: bool) -> list[s
         issues.append("BEZEL: a corner pixel is lit outside the round face.")
     mx, my = (int(round(layout.subdial_center[0])), int(round(layout.subdial_center[1])))
     mr, mg, mb = image.getpixel((mx, my))
-    lit = mr > 150 and mg > 140 and mb > 110
+    lit = mr > 110 and mg > 100 and mb > 80 and mr + mg > mb * 1.6
     sky = mb > mr and mb > mg
-    if not lit and not sky:
-        issues.append("MOON: the sub-dial center is neither the lit moon nor the night sky.")
+    hand = abs(mr - mg) < 24 and abs(mg - mb) < 24 and 40 < mr < 110
+    if not lit and not sky and not hand:
+        issues.append("MOON: the sub-dial center is neither the sky, the moon, nor the date hand.")
     half = max(8, int(layout.radius * 0.045))
+    _, _, day = calendar_on(datetime(date.today().year, date.today().month, date.today().day))
     checks = [
         ("BATTERY", layout.battery_center),
         ("MONTH", layout.month_center),
         ("WEEKDAY", layout.weekday_window.center),
-        ("DATE", layout.date_window.center),
-        ("PERPETUAL", layout.perpetual_center),
+        ("DATE", layout.date_hand_tip(day)),
     ]
     for name, point in checks:
         count = _paint_count(image, point[0], point[1], half) if name == "BATTERY" else _ink_count(image, point[0], point[1], half)
         if count < 4:
             issues.append(f"{name}: expected ink was not drawn.")
-    if layout.battery_center[0] >= layout.center[0] or abs(layout.battery_center[1] - layout.perpetual_center[1]) > 1:
-        issues.append("BATTERY: the percentage is not in the left legend place.")
+    if layout.battery_center[0] >= layout.center[0] or layout.battery_text_center[1] <= layout.battery_center[1]:
+        issues.append("BATTERY: the percentage is not under the icon.")
     return issues
 
 
@@ -247,8 +223,8 @@ def annotate(image: Image.Image, layout: DialLayout) -> Image.Image:
         layout.battery_center,
         layout.month_center,
         layout.weekday_window.center,
-        layout.date_window.center,
-        layout.perpetual_center,
+        layout.battery_text_center,
+        layout.date_hand_tip(2),
     ]
     for point in boxes:
         draw.rectangle(

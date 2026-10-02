@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from datetime import date, datetime
 from pathlib import Path
 
@@ -10,12 +9,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 from battery_style import battery_color
 from dial_layout import DialLayout, calendar_on, moon_phase
-from dial_render import render_dial, render_moon
-from languages import FACE_LARGE_PX, LEGEND_LARGE_PX, LANGUAGES
+from dial_render import paint_battery, paint_date_hand, paint_embossed, paint_hands, render_dial, render_moon
+from languages import LANGUAGES
 
 SIZES = (240, 260, 280, 360, 390, 416, 454, 466)
 ROOT = Path(__file__).resolve().parents[1]
-INK = (38, 34, 30, 255)
+INK = (28, 26, 22, 255)
+_TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
+_TIMES_BOLD = "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"
 
 
 def main() -> None:
@@ -46,7 +47,7 @@ def _write_drawables(folder: Path) -> None:
 def _write_launcher() -> None:
     icon = Image.new("RGBA", (65, 65), (0, 0, 0, 0))
     draw = ImageDraw.Draw(icon)
-    draw.ellipse((1, 1, 63, 63), fill=(244, 237, 224, 255))
+    draw.ellipse((1, 1, 63, 63), fill=(246, 240, 228, 255))
     moon = render_moon(28, 0.2)
     icon.alpha_composite(moon, (18, 22))
     path = ROOT / "resources" / "drawables" / "launcher_icon.png"
@@ -66,26 +67,6 @@ def _tracked_label(image: Image.Image, text: str, xy: tuple[float, float], font,
     image.alpha_composite(overlay)
 
 
-def _hands(image: Image.Image, layout: DialLayout) -> None:
-    """10:10, the time a dial is shown at. Thin, with a small gold cap."""
-    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-    cx, cy = layout.center
-    radius = layout.radius
-    minute = -math.pi / 2.0 + (10.0 / 60.0) * math.tau
-    hour = -math.pi / 2.0 + (10.0 / 12.0) * math.tau + (10.0 / 60.0) * (math.pi / 6.0)
-    ink = (42, 38, 34, 255)
-    for angle, length, width in ((hour, radius * 0.28, 2), (minute, radius * 0.34, 2)):
-        draw.line(
-            (cx, cy, cx + length * math.cos(angle), cy + length * math.sin(angle)),
-            fill=ink,
-            width=width,
-        )
-    cap = max(3, int(radius * 0.018))
-    draw.ellipse((cx - cap, cy - cap, cx + cap, cy + cap), fill=(196, 164, 106, 255))
-    image.alpha_composite(overlay)
-
-
 def _write_preview() -> None:
     size = 454
     image = render_dial(size)
@@ -101,20 +82,16 @@ def _write_preview() -> None:
     )
     image.alpha_composite(moon, origin)
 
-    text = ImageFont.truetype("/System/Library/Fonts/Supplemental/Baskerville.ttc", FACE_LARGE_PX, index=0)
-    legend = ImageFont.truetype("/System/Library/Fonts/Supplemental/Baskerville.ttc", LEGEND_LARGE_PX, index=0)
-    quiet = (42, 38, 34, 255)
-    draw = ImageDraw.Draw(image)
-    charge = battery_color(86, 1, 12)
-    draw.text(layout.battery_center, "86%", font=legend, fill=charge + (255,), anchor="mm")
-    draw.text(layout.month_center, english.months[month - 1], font=text, fill=quiet, anchor="mm")
-    draw.text(layout.weekday_window.center, english.weekdays[weekday - 1], font=legend, fill=quiet, anchor="mm")
-    draw.text(layout.date_window.center, str(day), font=legend, fill=quiet, anchor="mm")
-    gap = layout.radius * 0.055
-    x, y = layout.perpetual_center
-    _tracked_label(image, "PERPETUAL", (x, y - gap), legend, quiet, layout.radius * 0.004)
-    _tracked_label(image, "CALENDAR", (x, y + gap), legend, quiet, layout.radius * 0.004)
-    _hands(image, layout)
+    radius = layout.radius
+    month_font = ImageFont.truetype(_TIMES_BOLD, max(12, int(radius * 0.052)))
+    window_font = ImageFont.truetype(_TIMES_BOLD, max(11, int(radius * 0.040)))
+    legend_font = ImageFont.truetype(_TIMES, max(9, int(radius * 0.028)))
+    paint_date_hand(image, layout, day)
+    paint_battery(image, layout, 86)
+    paint_embossed(image, "86%", layout.battery_text_center, legend_font, battery_color(86, 1, 12) + (255,))
+    paint_embossed(image, english.months[month - 1], layout.month_center, month_font, INK, radius * 0.010)
+    paint_embossed(image, english.weekdays[weekday - 1], layout.weekday_window.center, window_font, INK)
+    paint_hands(image, layout)
 
     docs = ROOT / "docs"
     docs.mkdir(exist_ok=True)

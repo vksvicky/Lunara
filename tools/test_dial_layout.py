@@ -94,34 +94,45 @@ class DialLayoutTests(unittest.TestCase):
         self.assertGreater(gap, self.layout.radius * 0.06)
 
     def test_calendar_windows_stack_above_the_name_and_the_moon(self):
-        month = self.layout.month_center
+        month = self.layout.month_window
         weekday = self.layout.weekday_window
-        day = self.layout.date_window
         brand = self.layout.brand_center
         sub = self.layout.subdial_center
         center = self.layout.center
 
-        self.assertLess(month[1], weekday.center[1])
-        self.assertLess(weekday.center[0], center[0])
-        self.assertGreater(day.center[0], center[0])
-        self.assertAlmostEqual(weekday.center[1], day.center[1], delta=1)
+        self.assertLess(month.center[1], weekday.center[1])
+        self.assertAlmostEqual(month.center[0], center[0], delta=1)
+        self.assertAlmostEqual(weekday.center[0], center[0], delta=1)
+        self.assertGreater(month.half_w, weekday.half_w)
         self.assertLess(weekday.center[1], brand[1])
         self.assertLess(brand[1], sub[1])
-        self.assertAlmostEqual(month[0], center[0], delta=1)
-        self.assertAlmostEqual(brand[0], center[0], delta=1)
 
-        self.assertLess(weekday.right, day.left)
+    def test_date_hand_points_at_the_day_on_the_ring(self):
+        sub = self.layout.subdial_center
+        first = self.layout.date_hand_tip(1)
+        self.assertLess(first[1], sub[1])
+        self.assertAlmostEqual(first[0], sub[0], delta=1.5)
 
-    def test_legends_flank_the_center_and_stay_outside_the_date_ring(self):
-        automatic = self.layout.automatic_center
-        perpetual = self.layout.perpetual_center
+        ninth = self.layout.date_hand_tip(9)
+        self.assertGreater(ninth[0], sub[0])
+
+        with self.assertRaises(ValueError):
+            self.layout.date_hand_tip(0)
+        with self.assertRaises(ValueError):
+            self.layout.date_hand_tip(32)
+
+    def test_battery_icon_sits_left_of_center_and_the_percent_is_below_it(self):
+        battery = self.layout.battery_center
+        label = self.layout.battery_text_center
         center = self.layout.center
         sub = self.layout.subdial_center
+        self.assertLess(battery[0], center[0])
+        self.assertAlmostEqual(label[0], battery[0], delta=1)
+        self.assertGreater(label[1], battery[1])
+        self.assertGreater(battery[1], self.layout.weekday_window.center[1])
+        self.assertLess(label[1], sub[1])
         clearance = self.layout.date_ring_radius + self.layout.radius * 0.04
-        self.assertLess(automatic[0], center[0])
-        self.assertGreater(perpetual[0], center[0])
-        self.assertGreater(math.dist(automatic, sub), clearance)
-        self.assertGreater(math.dist(perpetual, sub), clearance)
+        self.assertGreater(math.dist(battery, sub), clearance)
 
     def test_positions_scale_with_screen_size(self):
         small = DialLayout(240)
@@ -161,10 +172,10 @@ class MoonPhaseTests(unittest.TestCase):
             "WINDOW_CX": (layout.center[0] - layout.weekday_window.center[0]) / radius,
             "SUBDIAL_Y": (layout.subdial_center[1] - cy) / radius,
             "MOON_WELL_R": layout.moon_well_radius / radius,
+            "DATE_HAND_R": math.dist(layout.subdial_center, layout.date_hand_tip(1)) / radius,
             "BATTERY_X": (layout.battery_center[0] - layout.center[0]) / radius,
             "BATTERY_Y": (layout.battery_center[1] - cy) / radius,
-            "PERPETUAL_X": (layout.perpetual_center[0] - layout.center[0]) / radius,
-            "LEGEND_Y": (layout.automatic_center[1] - cy) / radius,
+            "BATTERY_TEXT_DY": (layout.battery_text_center[1] - layout.battery_center[1]) / radius,
             "SYNODIC_DAYS": SYNODIC_DAYS,
             "NEW_MOON_EPOCH": float(NEW_MOON_EPOCH_SECONDS),
         }

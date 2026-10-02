@@ -24,22 +24,25 @@ NEW_MOON_EPOCH = datetime(2000, 1, 6, 18, 14, tzinfo=timezone.utc)
 # Seconds since the Unix epoch. The watch uses this same integer.
 NEW_MOON_EPOCH_SECONDS = 947182440
 
-# Fractions of the dial radius. Tuned so the moon sub-dial is the hero
-# and the VI numeral stays clear of the date ring.
-_ROMAN_RADIUS = 0.84
-_SUBDIAL_CENTER_Y = 0.44
+# Fractions of the dial radius, matched to the cream calendar mockup.
+# Romans sit in from the edge. The month, the paired windows, and the
+# name stack under XII. The moon ring fills the lower half and clears VI.
+_ROMAN_RADIUS = 0.80
+_SUBDIAL_CENTER_Y = 0.42
 _DATE_RING_RADIUS = 0.30
-_MOON_WELL_RADIUS = 0.16
-_MONTH_Y = -0.40
-_WINDOW_Y = -0.24
-_WINDOW_HALF_W = 0.13
-_WINDOW_HALF_H = 0.055
-_WINDOW_CX = 0.175
-_BRAND_Y = -0.08
+_MOON_WELL_RADIUS = 0.175
+_DATE_HAND_RADIUS = 0.25
+_MONTH_Y = -0.52
+_MONTH_HALF_W = 0.38
+_MONTH_HALF_H = 0.058
+_WINDOW_Y = -0.30
+_WINDOW_HALF_W = 0.145
+_WINDOW_HALF_H = 0.050
+_WINDOW_CX = 0.0
+_BRAND_Y = -0.175
 _BATTERY_X = -0.50
 _BATTERY_Y = 0.0
-_LEGEND_Y = 0.0
-_PERPETUAL_X = 0.50
+_BATTERY_TEXT_DY = 0.075
 
 
 @dataclass(frozen=True)
@@ -129,16 +132,28 @@ class DialLayout:
         return self._at(0.0, _MONTH_Y)
 
     @property
+    def month_window(self) -> Window:
+        return Window(center=self.month_center, half_w=_MONTH_HALF_W * self.radius, half_h=_MONTH_HALF_H * self.radius)
+
+    @property
     def battery_center(self) -> tuple[float, float]:
+        """Center of the battery icon."""
         return self._at(_BATTERY_X, _BATTERY_Y)
+
+    @property
+    def battery_text_center(self) -> tuple[float, float]:
+        x, y = self.battery_center
+        return (x, y + _BATTERY_TEXT_DY * self.radius)
 
     @property
     def weekday_window(self) -> Window:
         return self._window(-_WINDOW_CX)
 
-    @property
-    def date_window(self) -> Window:
-        return self._window(_WINDOW_CX)
+    def date_hand_tip(self, day: int) -> tuple[float, float]:
+        """Tip of the hand that indicates the day of the month, 1–31."""
+        if not isinstance(day, int) or isinstance(day, bool) or day < 1 or day > 31:
+            raise ValueError(f"day must be 1–31, got {day!r}")
+        return self._polar(self.subdial_center, _DATE_HAND_RADIUS * self.radius, clock_angle(day - 1, 31))
 
     @property
     def brand_center(self) -> tuple[float, float]:
@@ -146,12 +161,8 @@ class DialLayout:
 
     @property
     def automatic_center(self) -> tuple[float, float]:
-        """The old left legend. The battery percentage sits here now."""
+        """The old left legend. The battery icon sits here now."""
         return self.battery_center
-
-    @property
-    def perpetual_center(self) -> tuple[float, float]:
-        return self._at(_PERPETUAL_X, _LEGEND_Y)
 
     def romans(self) -> list[Mark]:
         names = ("XII", "III", "VI", "IX")

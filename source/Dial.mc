@@ -8,16 +8,15 @@ using Toybox.Time.Gregorian;
 using Toybox.WatchUi;
 
 // Fractions match tools/dial_layout.py. Positive Y is down, as a fraction of radius.
-const MONTH_Y = -0.40;
-const WINDOW_Y = -0.24;
-const WINDOW_CX = 0.175;
-const SUBDIAL_Y = 0.44;
-const MOON_WELL_R = 0.16;
+const MONTH_Y = -0.52;
+const WINDOW_Y = -0.30;
+const WINDOW_CX = 0.0;
+const SUBDIAL_Y = 0.42;
+const MOON_WELL_R = 0.175;
+const DATE_HAND_R = 0.25;
 const BATTERY_X = -0.50;
 const BATTERY_Y = 0.0;
-const PERPETUAL_X = 0.50;
-const LEGEND_Y = 0.0;
-const LEGEND_GAP = 0.06;
+const BATTERY_TEXT_DY = 0.075;
 const SYNODIC_DAYS = 29.530588853;
 const NEW_MOON_EPOCH = 947182440;
 
@@ -70,24 +69,72 @@ class Dial {
         var font = width >= 390 ? _fontLarge : _fontSmall;
         var legend = width >= 390 ? _legendLarge : _legendSmall;
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
-        var gap = LEGEND_GAP * radius;
         var batteryStyle = Application.Properties.getValue("BatteryStyle");
         var hour = info.hour as Lang.Number;
+        var level = System.getSystemStats().battery;
+        var shade = 0x968878;
+        var highlight = 0xFFFCF6;
 
+        dc.setColor(highlight, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx - 1, cy + MONTH_Y * radius - 1, font, _face.month(language, month), center);
+        dc.drawText(cx + WINDOW_CX * radius - 1, cy + WINDOW_Y * radius - 1, font, _face.weekday(language, weekday), center);
+        dc.setColor(shade, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx + 1, cy + MONTH_Y * radius + 1, font, _face.month(language, month), center);
+        dc.drawText(cx + WINDOW_CX * radius + 1, cy + WINDOW_Y * radius + 1, font, _face.weekday(language, weekday), center);
         dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, cy + MONTH_Y * radius, font, _face.month(language, month), center);
-        dc.drawText(cx - WINDOW_CX * radius, cy + WINDOW_Y * radius, font, _face.weekday(language, weekday), center);
-        dc.drawText(cx + WINDOW_CX * radius, cy + WINDOW_Y * radius, font, day.toString(), center);
-        dc.setColor(Battery.color(System.getSystemStats().battery, batteryStyle, hour), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + BATTERY_X * radius, cy + BATTERY_Y * radius, legend, Battery.text(System.getSystemStats().battery), center);
-        dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx + PERPETUAL_X * radius, cy + LEGEND_Y * radius - gap, legend, _face.perpetualLine(language, 0), center);
-        dc.drawText(cx + PERPETUAL_X * radius, cy + LEGEND_Y * radius + gap, legend, _face.perpetualLine(language, 1), center);
+        dc.drawText(cx + WINDOW_CX * radius, cy + WINDOW_Y * radius, font, _face.weekday(language, weekday), center);
+
+        Dial._battery(dc, cx + BATTERY_X * radius, cy + BATTERY_Y * radius, radius, level, batteryStyle, hour);
+        dc.setColor(Battery.color(level, batteryStyle, hour), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx + BATTERY_X * radius, cy + (BATTERY_Y + BATTERY_TEXT_DY) * radius, legend, Battery.text(level), center);
 
         var moon = _moons[Dial.moonIndex(Dial.moonPhase(moment))];
         var moonX = cx - moon.getWidth() / 2.0;
         var moonY = cy + SUBDIAL_Y * radius - moon.getHeight() / 2.0;
         dc.drawBitmap(moonX, moonY, moon);
+        Dial._dateHand(dc, cx, cy + SUBDIAL_Y * radius, radius, day);
+    }
+
+    static function _battery(dc, x, y, radius, level, style, hour) {
+        var width = radius * 0.20;
+        var height = radius * 0.072;
+        var left = x - width / 2.0;
+        var top = y - height / 2.0;
+        var stroke = (radius * 0.006).toNumber();
+        if (stroke < 1) {
+            stroke = 1;
+        }
+        dc.setColor(0x1C1A16, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(stroke);
+        dc.drawRoundedRectangle(left, top, width, height, height * 0.22);
+        var nubH = height * 0.38;
+        var nubW = radius * 0.016;
+        dc.fillRectangle(left + width, y - nubH / 2.0, nubW, nubH);
+        if (level == null) {
+            return;
+        }
+        var pct = Battery.percent(level);
+        var pad = stroke + 1;
+        var inner = (width - 2 * pad) * pct / 100.0;
+        if (inner <= 0) {
+            return;
+        }
+        dc.setColor(Battery.color(level, style, hour), Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(left + pad, top + pad, inner, height - 2 * pad);
+    }
+
+    static function _dateHand(dc, sx, sy, radius, day) {
+        var angle = -Math.PI / 2.0 + ((day - 1) / 31.0) * Math.PI * 2.0;
+        var inner = (MOON_WELL_R + 0.018) * radius;
+        var outer = DATE_HAND_R * radius;
+        var width = (radius * 0.010).toNumber();
+        if (width < 1) {
+            width = 1;
+        }
+        dc.setColor(0x1C1A16, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(width);
+        dc.drawLine(sx + inner * Math.cos(angle), sy + inner * Math.sin(angle), sx + outer * Math.cos(angle), sy + outer * Math.sin(angle));
     }
 
     static function moonPhase(moment as Time.Moment) as Lang.Float {
