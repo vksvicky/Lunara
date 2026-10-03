@@ -8,15 +8,24 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from battery_style import battery_color
-from dial_layout import DialLayout, calendar_on, moon_phase
-from dial_render import paint_battery, paint_date_hand, paint_embossed, paint_hands, render_dial, render_moon
+from dial_layout import BRAND, DialLayout, calendar_on, moon_phase
+from dial_render import (
+    date_hole_diameter,
+    label_font,
+    paint_battery,
+    paint_date_hand,
+    paint_embossed,
+    paint_hands,
+    render_dial,
+    render_moon,
+    scaled_battery_icon,
+)
 from languages import LANGUAGES
 
 SIZES = (240, 260, 280, 360, 390, 416, 454, 466)
 ROOT = Path(__file__).resolve().parents[1]
 INK = (28, 26, 22, 255)
 _TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
-_TIMES_BOLD = "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"
 
 
 def main() -> None:
@@ -24,10 +33,11 @@ def main() -> None:
         folder = ROOT / f"resources-round-{size}x{size}" / "drawables"
         folder.mkdir(parents=True, exist_ok=True)
         render_dial(size).save(folder / "dial_bg.png")
-        layout = DialLayout(size)
-        moon_size = max(8, int(round(layout.moon_well_radius * 2)))
+        moon_size = date_hole_diameter(size)
         for index in range(8):
             render_moon(moon_size, index / 8.0).save(folder / f"moon_{index}.png")
+        icon_width = max(16, int(round((size / 2) * 0.24)))
+        scaled_battery_icon(icon_width).save(folder / "battery_icon.png")
         _write_drawables(folder)
         print(f"{size}x{size}  moon {moon_size}px")
 
@@ -37,7 +47,11 @@ def main() -> None:
 
 
 def _write_drawables(folder: Path) -> None:
-    lines = ["<drawables>", '    <bitmap id="dial_bg" filename="dial_bg.png" />']
+    lines = [
+        "<drawables>",
+        '    <bitmap id="dial_bg" filename="dial_bg.png" />',
+        '    <bitmap id="battery_icon" filename="battery_icon.png" />',
+    ]
     for index in range(8):
         lines.append(f'    <bitmap id="moon_{index}" filename="moon_{index}.png" />')
     lines.append("</drawables>")
@@ -74,7 +88,7 @@ def _write_preview() -> None:
     today = date.today()
     month, weekday, day = calendar_on(datetime(today.year, today.month, today.day))
     english = next(lang for lang in LANGUAGES if lang.key == "eng")
-    well = int(round(layout.moon_well_radius * 2))
+    well = date_hole_diameter(size)
     moon = render_moon(well, moon_phase(today.year, today.month, today.day))
     origin = (
         int(round(layout.subdial_center[0] - well / 2)),
@@ -83,14 +97,15 @@ def _write_preview() -> None:
     image.alpha_composite(moon, origin)
 
     radius = layout.radius
-    month_font = ImageFont.truetype(_TIMES_BOLD, max(12, int(radius * 0.052)))
-    window_font = ImageFont.truetype(_TIMES_BOLD, max(11, int(radius * 0.040)))
+    month_name = english.months[month - 1]
+    shared = label_font(layout)
     legend_font = ImageFont.truetype(_TIMES, max(9, int(radius * 0.028)))
     paint_date_hand(image, layout, day)
     paint_battery(image, layout, 86)
-    paint_embossed(image, "86%", layout.battery_text_center, legend_font, battery_color(86, 1, 12) + (255,))
-    paint_embossed(image, english.months[month - 1], layout.month_center, month_font, INK, radius * 0.010)
-    paint_embossed(image, english.weekdays[weekday - 1], layout.weekday_window.center, window_font, INK)
+    paint_embossed(image, "86%", layout.battery_text_center, legend_font, INK)
+    paint_embossed(image, month_name, layout.month_center, shared, INK)
+    paint_embossed(image, english.weekdays[weekday - 1], layout.weekday_window.center, shared, INK)
+    paint_embossed(image, BRAND, layout.brand_center, shared, INK)
     paint_hands(image, layout)
 
     docs = ROOT / "docs"

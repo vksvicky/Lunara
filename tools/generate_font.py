@@ -25,14 +25,16 @@ from languages import (
 
 ROOT = Path(__file__).resolve().parents[1]
 SANS = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
+SONG = "/System/Library/Fonts/Supplemental/Songti.ttc"
 DEVA = "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc"
 
 
 def main() -> None:
     font_dir = ROOT / "resources" / "fonts"
     font_dir.mkdir(parents=True, exist_ok=True)
-    _write_face_font(FACE_SMALL_PX, font_dir / "face_small.fnt", font_dir / "face_small_0.png")
-    _write_face_font(FACE_LARGE_PX, font_dir / "face_large.fnt", font_dir / "face_large_0.png")
+    _write_face_font(FACE_SMALL_PX, font_dir / "face_small.fnt", font_dir / "face_small_0.png", serif=True)
+    _write_face_font(FACE_LARGE_PX, font_dir / "face_large.fnt", font_dir / "face_large_0.png", serif=True)
     _write_face_font(
         LEGEND_SMALL_PX,
         font_dir / "legend_small.fnt",
@@ -51,21 +53,34 @@ def main() -> None:
     print("fonts and source/FaceText.mc")
 
 
+def _is_cjk(char: str) -> bool:
+    code = ord(char)
+    return (
+        0x3000 <= code <= 0x30FF
+        or 0x3400 <= code <= 0x9FFF
+        or 0xF900 <= code <= 0xFAFF
+        or 0xFF00 <= code <= 0xFFEF
+    )
+
+
 def _write_face_font(
     size: int,
     fnt_path: Path,
     png_path: Path,
     charset: str | None = None,
     words: list[tuple[str, str]] | None = None,
+    serif: bool = False,
 ) -> None:
-    sans = ImageFont.truetype(SANS, size)
+    latin = ImageFont.truetype(TIMES if serif else SANS, size)
+    cjk = ImageFont.truetype(SONG, size, index=6) if serif else latin
     deva = ImageFont.truetype(DEVA, size, index=1)
-    ascent, descent = sans.getmetrics()
-    glyphs = [_measure(sans, " ", size, space=True)]
+    ascent, _descent = latin.getmetrics()
+    glyphs = [_measure(latin, " ", size, space=True)]
     for char in catalog_charset() if charset is None else charset:
         if char == " ":
             continue
-        glyphs.append(_measure(sans, char, size))
+        face = cjk if _is_cjk(char) else latin
+        glyphs.append(_measure(face, char, size))
     for glyph, word in shaped_words() if words is None else words:
         glyphs.append(_measure(deva, word, size, code=ord(glyph)))
 
@@ -86,7 +101,7 @@ def _write_face_font(
             row_h = max(row_h, glyph["height"])
         placed.append(glyph)
     atlas_h = max(1, y + row_h + 1)
-    line_height = max(ascent + descent, max(g["yoffset"] + g["height"] for g in placed))
+    line_height = max(ascent + _descent, max(g["yoffset"] + g["height"] for g in placed))
 
     image = Image.new("L", (atlas_w, atlas_h), 0)
     for glyph in placed:

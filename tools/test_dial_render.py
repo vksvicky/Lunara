@@ -2,9 +2,12 @@
 
 import math
 import unittest
+from pathlib import Path
+
+from PIL import Image
 
 from dial_layout import DialLayout, clock_angle
-from dial_render import render_dial, render_moon
+from dial_render import _date_ring_shift, paint_battery, render_dial, render_moon
 
 
 def _is_bright(pixel) -> bool:
@@ -47,39 +50,59 @@ class DialRenderTests(unittest.TestCase):
         self.assertEqual(image.size, (240, 240))
         self.assertEqual(image.mode, "RGBA")
 
-    def test_center_is_warm_ivory_and_the_corner_is_clear(self):
+    def test_open_field_is_warm_ivory_and_the_corner_is_clear(self):
         image = render_dial(240)
-        red, green, blue, alpha = image.getpixel((120, 120))
+        layout = DialLayout(240)
+        x = int(layout.center[0] + layout.radius * 0.50)
+        y = int(layout.center[1] - layout.radius * 0.15)
+        red, green, blue, alpha = image.getpixel((x, y))
         self.assertEqual(alpha, 255)
         self.assertGreater(red, 220)
         self.assertGreater(green, 210)
         self.assertGreater(red, blue + 10)
         self.assertEqual(image.getpixel((0, 0))[3], 0)
 
-    def test_cream_field_has_hour_batons_and_no_minute_track(self):
-        """The mockup prints Romans and hour lines. The minute track is on the case."""
+    def test_placed_rings_are_copied_without_resampling(self):
+        """Opaque pixels of the per-size artwork survive unchanged."""
+        size = 240
+        image = render_dial(size)
+        artwork = Path(__file__).resolve().parents[1] / "resources" / "artwork"
+        outer = Image.open(artwork / f"outer_dial_{size}.png").convert("RGBA")
+        date_ring = Image.open(artwork / f"date_ring_{size}.png").convert("RGBA")
+        self.assertEqual(outer.size, image.size)
+        self.assertEqual(date_ring.size, image.size)
+        dx, dy = _date_ring_shift(date_ring, DialLayout(size))
+        copied = 0
+        for y in range(size):
+            for x in range(size):
+                top = outer.getpixel((x, y))
+                if top[3] == 255:
+                    self.assertEqual(image.getpixel((x, y)), top, f"outer_dial at {x},{y}")
+                    copied += 1
+                    continue
+                sx = x - dx
+                sy = y - dy
+                if not (0 <= sx < size and 0 <= sy < size):
+                    continue
+                band = date_ring.getpixel((sx, sy))
+                if top[3] == 0 and band[3] == 255:
+                    self.assertEqual(image.getpixel((x, y)), band, f"date_ring at {x},{y}")
+                    copied += 1
+        self.assertGreater(copied, 1000)
+
+    def test_month_and_weekday_sit_on_the_open_dial(self):
         image = render_dial(240)
         layout = DialLayout(240)
-        minute = clock_angle(1, 60)
-        rim_x = int(round(layout.center[0] + layout.radius * 0.96 * math.cos(minute)))
-        rim_y = int(round(layout.center[1] + layout.radius * 0.96 * math.sin(minute)))
-        red, green, blue, alpha = image.getpixel((rim_x, rim_y))
-        self.assertEqual(alpha, 255)
-        self.assertGreater(red, 220)
-        self.assertGreater(green, 210)
-
-        hour = clock_angle(2, 12)
-        mark_x = int(round(layout.center[0] + layout.radius * 0.80 * math.cos(hour)))
-        mark_y = int(round(layout.center[1] + layout.radius * 0.80 * math.sin(hour)))
-        self.assertTrue(_has_ink(image, mark_x, mark_y))
-
-    def test_month_and_weekday_share_a_recessed_frame(self):
-        image = render_dial(240)
-        layout = DialLayout(240)
-        field = image.getpixel((int(layout.center[0] + layout.radius * 0.55), int(layout.month_center[1])))
-        for window in (layout.month_window, layout.weekday_window):
-            floor = image.getpixel((int(window.center[0]), int(window.center[1])))
-            self.assertLess(sum(floor[:3]), sum(field[:3]) - 12, window.center)
+        field = image.getpixel((int(layout.center[0] + layout.radius * 0.50), int(layout.center[1] - layout.radius * 0.15)))
+        weekday = layout.weekday_window
+        points = (
+            layout.month_center,
+            weekday.center,
+            (weekday.left, weekday.center[1] - weekday.half_h),
+        )
+        for point in points:
+            pixel = image.getpixel((int(point[0]), int(point[1])))
+            self.assertLess(abs(sum(pixel[:3]) - sum(field[:3])), 20, point)
 
     def test_moon_well_is_dark_blue(self):
         layout = DialLayout(240)
@@ -91,11 +114,34 @@ class DialRenderTests(unittest.TestCase):
         self.assertGreater(blue, red)
         self.assertLess(green, 90)
 
-    def test_twelve_oclock_roman_is_inked(self):
+    def test_battery_icon_is_the_placed_artwork_and_fills_from_the_left(self):
         layout = DialLayout(240)
-        image = render_dial(240)
-        twelve = next(mark for mark in layout.romans() if mark.text == "XII")
-        self.assertTrue(_has_ink(image, twelve.x, twelve.y))
+        image = Image.new("RGBA", (240, 240), (0, 0, 0, 0))
+        paint_battery(image, layout, 80)
+        cx, cy = (int(round(layout.battery_center[0])), int(round(layout.battery_center[1])))
+        dark = 0
+        charge = 0
+        for dy in range(-14, 15):
+            for dx in range(-22, 23):
+                red, green, blue, alpha = image.getpixel((cx + dx, cy + dy))
+                if alpha < 100:
+                    continue
+                if red < 40 and green < 40 and blue < 40:
+                    dark += 1
+                elif green > red + 20 and green > 70:
+                    charge += 1
+        self.assertGreater(dark, 8)
+        self.assertGreater(charge, 8)
+
+        empty = Image.new("RGBA", (240, 240), (0, 0, 0, 0))
+        paint_battery(empty, layout, None)
+        leaked = 0
+        for dy in range(-14, 15):
+            for dx in range(-22, 23):
+                red, green, blue, alpha = empty.getpixel((cx + dx, cy + dy))
+                if alpha > 200 and green > red + 20 and green > 70:
+                    leaked += 1
+        self.assertEqual(leaked, 0)
 
     def test_side_legends_are_left_blank_for_live_text(self):
         layout = DialLayout(240)
@@ -176,6 +222,71 @@ class MoonRenderTests(unittest.TestCase):
         wrapped = list(render_moon(32, 1.25).get_flattened_data())
         quarter = list(render_moon(32, 0.25).get_flattened_data())
         self.assertEqual(wrapped, quarter)
+
+
+def _roman_tones(image, layout, x: float, y: float) -> dict[str, int]:
+    """Count gunmetal body and the bright chamfer around one numeral."""
+    tones = {"metal": 0, "highlight": 0}
+    half = 22
+    x0 = max(0, int(x) - half)
+    y0 = max(0, int(y) - half)
+    x1 = min(image.width, int(x) + half + 1)
+    y1 = min(image.height, int(y) + half + 1)
+    sx, sy = layout.subdial_center
+    ring = layout.date_ring_radius + layout.radius * 0.06
+    for py in range(y0, y1):
+        for px in range(x0, x1):
+            if math.hypot(px - sx, py - sy) < ring:
+                continue
+            if math.hypot(px - layout.center[0], py - layout.center[1]) > layout.radius * 0.86:
+                continue
+            red, green, blue, alpha = image.getpixel((px, py))
+            if alpha < 200:
+                continue
+            if red > 220 and green > 210 and red > blue + 8:
+                continue
+            if red > 190 and green > 190 and blue > 185 and abs(red - blue) < 28:
+                tones["highlight"] += 1
+            elif 28 < red < 120 and abs(red - green) < 24 and abs(green - blue) < 24:
+                tones["metal"] += 1
+    return tones
+
+
+def _inset_figure(layout, mark) -> tuple[float, float]:
+    """Where the figure is printed: just inside the date ring."""
+    sx, sy = layout.subdial_center
+    return (sx + (mark.x - sx) * 0.94, sy + (mark.y - sy) * 0.94)
+
+
+def _dark_figure(image, x: float, y: float) -> int:
+    count = 0
+    half = 3
+    for py in range(max(0, int(y) - half), min(image.height, int(y) + half + 1)):
+        for px in range(max(0, int(x) - half), min(image.width, int(x) + half + 1)):
+            red, green, blue, alpha = image.getpixel((px, py))
+            if alpha > 200 and red < 80 and green < 80 and blue < 80:
+                count += 1
+    return count
+
+
+def _metal_and_ink(image, x, y) -> tuple[int, int]:
+    """Silver applied indices versus flat black strokes."""
+    metal = 0
+    ink = 0
+    x0 = max(0, int(x) - 8)
+    y0 = max(0, int(y) - 8)
+    x1 = min(image.width, int(x) + 9)
+    y1 = min(image.height, int(y) + 9)
+    for py in range(y0, y1):
+        for px in range(x0, x1):
+            red, green, blue, alpha = image.getpixel((px, py))
+            if alpha < 200:
+                continue
+            if red < 70 and green < 70 and blue < 70:
+                ink += 1
+            elif 90 < red < 236 and abs(red - green) < 30 and abs(green - blue) < 30 and not (red > 220 and green > 210 and red > blue + 8):
+                metal += 1
+    return metal, ink
 
 
 def _has_ink(image, x, y) -> bool:

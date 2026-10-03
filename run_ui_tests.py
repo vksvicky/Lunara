@@ -27,8 +27,17 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 
 from battery_style import battery_color  # noqa: E402
-from dial_layout import DialLayout, calendar_on, moon_phase  # noqa: E402
-from dial_render import paint_battery, paint_date_hand, paint_embossed, paint_hands, render_dial, render_moon  # noqa: E402
+from dial_layout import BRAND, DialLayout, calendar_on, moon_phase  # noqa: E402
+from dial_render import (  # noqa: E402
+    date_hole_diameter,
+    label_font,
+    paint_battery,
+    paint_date_hand,
+    paint_embossed,
+    paint_hands,
+    render_dial,
+    render_moon,
+)
 from languages import (  # noqa: E402
     FACE_LARGE_PX,
     FACE_SMALL_PX,
@@ -137,7 +146,7 @@ def render_face(size: int, language_key: str, battery: float, with_hands: bool) 
     today = date.today()
     month, weekday, day = calendar_on(datetime(today.year, today.month, today.day))
     phase = moon_phase(today.year, today.month, today.day)
-    well = max(8, int(round(layout.moon_well_radius * 2)))
+    well = date_hole_diameter(size)
     moon = render_moon(well, phase)
     origin = (
         int(round(layout.subdial_center[0] - well / 2)),
@@ -146,17 +155,19 @@ def render_face(size: int, language_key: str, battery: float, with_hands: bool) 
     image.alpha_composite(moon, origin)
 
     lang = BY_KEY[language_key]
-    pixels = FACE_LARGE_PX if size >= 390 else FACE_SMALL_PX
     legend_px = LEGEND_LARGE_PX if size >= 390 else LEGEND_SMALL_PX
-    font = _font("deva" if language_key == "hin" else "sans", pixels)
+    month_name = lang.months[month - 1]
+    shared = label_font(layout, language_key)
+    name = label_font(layout, "eng")
     legend = _font("deva" if language_key == "hin" else "sans", legend_px)
     paint_date_hand(image, layout, day)
     paint_battery(image, layout, battery)
     # Classic green/amber/red so a screenshot does not change when the hour changes.
     charge = battery_color(battery, 1, 12)
     paint_embossed(image, format_battery(battery), layout.battery_text_center, legend, charge + (255,))
-    paint_embossed(image, lang.months[month - 1], layout.month_center, font, INK)
-    paint_embossed(image, lang.weekdays[weekday - 1], layout.weekday_window.center, font, INK)
+    paint_embossed(image, month_name, layout.month_center, shared, INK)
+    paint_embossed(image, lang.weekdays[weekday - 1], layout.weekday_window.center, shared, INK)
+    paint_embossed(image, BRAND, layout.brand_center, name, INK)
     if with_hands:
         paint_hands(image, layout)
     return _flatten(image)
@@ -184,10 +195,11 @@ def _ink_count(image: Image.Image, x: float, y: float, half: int) -> int:
 
 def validate(image: Image.Image, layout: DialLayout, with_hands: bool) -> list[str]:
     issues = []
-    cx, cy = (int(layout.center[0]), int(layout.center[1]))
-    red, green, blue = image.getpixel((cx, cy))
-    if not with_hands and not (red > 210 and green > 200 and red > blue + 8):
-        issues.append("DIAL: center is not the ivory ground.")
+    field_x = int(layout.center[0] + layout.radius * 0.50)
+    field_y = int(layout.center[1] - layout.radius * 0.15)
+    red, green, blue = image.getpixel((field_x, field_y))
+    if not (red > 210 and green > 200 and red > blue + 8):
+        issues.append("DIAL: the open field is not the ivory ground.")
     corner = image.getpixel((1, 1))
     if sum(corner) > 40:
         issues.append("BEZEL: a corner pixel is lit outside the round face.")

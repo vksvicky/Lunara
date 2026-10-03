@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import ImageFont
 
 from dial_layout import DialLayout
-from dial_render import brand_half_width
+from dial_render import brand_half_width, face_px, label_font, open_label_limit
 from languages import (
     FACE_LARGE_PX,
     FACE_SMALL_PX,
@@ -135,6 +135,30 @@ class LanguageCatalogTests(unittest.TestCase):
                     self.assertLess(_width(month, lang.key, px), month_limit, f"{size} {lang.key} {month}")
                 for label in lang.weekdays:
                     self.assertLess(_width(label, lang.key, px), window, f"{size} {lang.key} {label}")
+
+    def test_month_weekday_and_name_share_one_font_size(self):
+        for size in (240, 260, 390, 466):
+            layout = DialLayout(size)
+            expected = FACE_LARGE_PX if size >= 390 else FACE_SMALL_PX
+            self.assertEqual(face_px(size), expected)
+            latin = label_font(layout, "eng")
+            hindi = label_font(layout, "hin")
+            kana = label_font(layout, "jpn_hira")
+            self.assertEqual(latin.getname()[0], "Times New Roman")
+            self.assertEqual(latin.size, expected)
+            self.assertEqual(hindi.size, expected)
+            self.assertEqual(kana.size, expected)
+            self.assertGreater(latin.getlength("LUNARA"), 0)
+
+    def test_longest_month_in_every_language_fits_the_open_field(self):
+        for size in (240, 260, 280, 360, 390, 416, 454, 466):
+            layout = DialLayout(size)
+            limit = open_label_limit(layout)
+            for lang in LANGUAGES:
+                font = label_font(layout, lang.key)
+                widest = max(lang.months, key=lambda month: font.getlength(month))
+                width = font.getlength(widest)
+                self.assertLessEqual(width, limit, f"{size} {lang.key} {widest} {width:.1f} > {limit:.1f}")
 
     def test_legends_clear_the_brand_and_the_side_romans(self):
         for size, px in ((240, LEGEND_SMALL_PX), (260, LEGEND_SMALL_PX), (390, LEGEND_LARGE_PX), (466, LEGEND_LARGE_PX)):

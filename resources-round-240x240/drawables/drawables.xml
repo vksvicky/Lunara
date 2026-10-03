@@ -1,5 +1,6 @@
 <drawables>
     <bitmap id="dial_bg" filename="dial_bg.png" />
+    <bitmap id="battery_icon" filename="battery_icon.png" />
     <bitmap id="moon_0" filename="moon_0.png" />
     <bitmap id="moon_1" filename="moon_1.png" />
     <bitmap id="moon_2" filename="moon_2.png" />

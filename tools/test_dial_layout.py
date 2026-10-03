@@ -168,6 +168,8 @@ class MoonPhaseTests(unittest.TestCase):
         _, cy = layout.center
         expected = {
             "MONTH_Y": (layout.month_center[1] - cy) / radius,
+            "MONTH_HALF_W": layout.month_window.half_w / radius,
+            "MONTH_HALF_H": layout.month_window.half_h / radius,
             "WINDOW_Y": (layout.weekday_window.center[1] - cy) / radius,
             "WINDOW_CX": (layout.center[0] - layout.weekday_window.center[0]) / radius,
             "SUBDIAL_Y": (layout.subdial_center[1] - cy) / radius,
@@ -176,6 +178,7 @@ class MoonPhaseTests(unittest.TestCase):
             "BATTERY_X": (layout.battery_center[0] - layout.center[0]) / radius,
             "BATTERY_Y": (layout.battery_center[1] - cy) / radius,
             "BATTERY_TEXT_DY": (layout.battery_text_center[1] - layout.battery_center[1]) / radius,
+            "BRAND_Y": (layout.brand_center[1] - cy) / radius,
             "SYNODIC_DAYS": SYNODIC_DAYS,
             "NEW_MOON_EPOCH": float(NEW_MOON_EPOCH_SECONDS),
         }
