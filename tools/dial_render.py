@@ -1,9 +1,7 @@
 """Rasterize the Lunara dial and its moon-phase disc.
 
-The bitmap holds everything that does not change with the day or the
-language: the ivory ground, hour batons, Roman numerals, window frames,
-the LUNARA name, and the moon sub-dial. Month, weekday, date, the
-perpetual legend, and the battery are drawn later, on the watch.
+The bitmap is the ivory ground plus the supplied rings. Month, weekday,
+the Lunara name, and the battery are drawn later, on the watch.
 """
 
 from __future__ import annotations
@@ -11,23 +9,17 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from battery_style import battery_color
 from dial_layout import BRAND, DialLayout, clock_angle
 
 IVORY = (246, 240, 228, 255)
 INK = (28, 26, 22, 255)
-RING = (48, 44, 38, 255)
 NAVY = (8, 18, 42, 255)
-GOLD = (196, 164, 106, 255)
 
 _TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
-_TIMES_BOLD = "/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"
-
 _SONG = "/System/Library/Fonts/Supplemental/Songti.ttc"
-
-_FONT_CACHE: dict[tuple[str, int], ImageFont.FreeTypeFont] = {}
 
 
 def render_dial(size: int) -> Image.Image:
@@ -175,127 +167,6 @@ def _paint_ground(layout: DialLayout) -> Image.Image:
     return image
 
 
-def _hour_indices(image: Image.Image, layout: DialLayout) -> None:
-    """Slim applied indices. Drawn large, then reduced, so the facet stays a hairline."""
-    scale = 4
-    layer = Image.new("RGBA", (image.width * scale, image.height * scale), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(layer)
-    cx = layout.center[0] * scale
-    cy = layout.center[1] * scale
-    radius = layout.radius * scale
-    inner = radius * 0.74
-    outer = radius * 0.85
-    half = radius * 0.0052
-    shadow = radius * 0.0035
-    for hour in (1, 2, 4, 5, 7, 8, 10, 11):
-        angle = clock_angle(hour, 12)
-        ux = math.cos(angle)
-        uy = math.sin(angle)
-        px = -uy
-        py = ux
-        if px * -0.7 + py * -0.7 < 0:
-            px, py = -px, -py
-
-        def point(along: float, across: float, ox: float = 0, oy: float = 0):
-            return (cx + along * ux + across * px + ox, cy + along * uy + across * py + oy)
-
-        draw.polygon(
-            (
-                point(inner, half, shadow, shadow),
-                point(outer, half, shadow, shadow),
-                point(outer, -half, shadow, shadow),
-                point(inner, -half, shadow, shadow),
-            ),
-            fill=(168, 156, 140, 120),
-        )
-        draw.polygon(
-            (point(inner, 0), point(outer, 0), point(outer, half), point(inner, half)),
-            fill=(238, 240, 244, 255),
-        )
-        draw.polygon(
-            (point(inner, 0), point(inner, -half), point(outer, -half), point(outer, 0)),
-            fill=(154, 150, 144, 255),
-        )
-    image.alpha_composite(layer.resize(image.size, Image.Resampling.LANCZOS))
-
-
-def _romans(image: Image.Image, layout: DialLayout) -> None:
-    """Heavy gunmetal serifs with a sharp light chamfer, reduced from a large plate."""
-    font = _font("roman", layout.radius * 0.138)
-    tracking = layout.radius * 0.006
-    for mark in layout.romans():
-        plate = _silver_plate(mark.text, font, tracking)
-        origin = (int(round(mark.x - plate.width / 2)), int(round(mark.y - plate.height / 2)))
-        image.alpha_composite(plate, origin)
-
-
-def _silver_plate(text: str, font, tracking: float) -> Image.Image:
-    scale = 4
-    big = _font("roman", font.size * scale)
-    track = tracking * scale
-    widths = [big.getbbox(char)[2] - big.getbbox(char)[0] for char in text]
-    text_w = sum(widths) + track * (len(text) - 1)
-    ascent, descent = big.getmetrics()
-    pad = int(big.size * 0.55)
-    width = max(1, int(text_w + pad * 2))
-    height = max(1, int(ascent + descent + pad * 2))
-    mask = Image.new("L", (width, height), 0)
-    draw = ImageDraw.Draw(mask)
-    cursor = (width - text_w) / 2.0
-    cy = height / 2.0
-    stroke = max(2, big.size // 12)
-    for char, char_w in zip(text, widths):
-        draw.text(
-            (cursor + char_w / 2.0, cy),
-            char,
-            font=big,
-            fill=255,
-            anchor="mm",
-            stroke_width=stroke,
-            stroke_fill=255,
-        )
-        cursor += char_w + track
-    reach = max(2, big.size // 18)
-    color = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    cover = mask.load()
-    pixels = color.load()
-
-    def sample(x: int, y: int) -> int:
-        if 0 <= x < width and 0 <= y < height:
-            return cover[x, y]
-        return 0
-
-    for y in range(height):
-        for x in range(width):
-            amount = sample(x, y)
-            if amount < 16:
-                continue
-            delta = sample(x - reach, y - reach) - sample(x + reach, y + reach)
-            if delta < -50:
-                tone = (236, 238, 242)
-            elif delta > 50:
-                tone = (32, 34, 38)
-            else:
-                tone = (58, 62, 68)
-            pixels[x, y] = (*tone, amount)
-
-    small = (max(1, width // scale), max(1, height // scale))
-    glyph = color.resize(small, Image.Resampling.LANCZOS)
-    blurred = mask.resize(small, Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(radius=0.8))
-    shadow = Image.new("RGBA", small, (0, 0, 0, 0))
-    shade = shadow.load()
-    soft = blurred.load()
-    for y in range(small[1]):
-        for x in range(small[0]):
-            amount = soft[x, y]
-            if amount:
-                shade[x, y] = (88, 78, 66, int(amount * 0.55))
-    plate = Image.new("RGBA", small, (0, 0, 0, 0))
-    plate.alpha_composite(shadow, (1, 2))
-    plate.alpha_composite(glyph)
-    return plate
-
-
 def face_px(size: int) -> int:
     """The one size used for the month, the weekday, and the Lunara name."""
     return 16 if size >= 390 else 11
@@ -326,9 +197,6 @@ def brand_half_width(layout: DialLayout) -> float:
     return label_font(layout).getlength(BRAND) / 2.0
 
 
-_ARIAL_BOLD = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
-
-
 def _subdial_rings(draw: ImageDraw.ImageDraw, layout: DialLayout) -> None:
     cx, cy = layout.subdial_center
     ring = layout.date_ring_radius
@@ -337,37 +205,6 @@ def _subdial_rings(draw: ImageDraw.ImageDraw, layout: DialLayout) -> None:
 
     draw.ellipse((cx - outer, cy - outer, cx + outer, cy + outer), fill=(240, 234, 222, 255))
     draw.ellipse((cx - well, cy - well, cx + well, cy + well), fill=NAVY)
-
-
-def _finish_rings(draw: ImageDraw.ImageDraw, layout: DialLayout) -> None:
-    """Hairline circles. Drawn at final size so they stay one pixel, not a blurred band."""
-    cx, cy = layout.subdial_center
-    ring = layout.date_ring_radius
-    well = layout.moon_well_radius
-    outer = ring + layout.radius * 0.048
-    inner = well + layout.radius * 0.012
-    draw.ellipse((cx - outer, cy - outer, cx + outer, cy + outer), outline=(62, 56, 48, 255), width=1)
-    draw.ellipse((cx - inner, cy - inner, cx + inner, cy + inner), outline=(186, 176, 160, 255), width=1)
-    draw.ellipse((cx - well, cy - well, cx + well, cy + well), outline=(186, 156, 96, 255), width=1)
-
-
-def _date_numerals(image: Image.Image, layout: DialLayout) -> None:
-    cx, cy = layout.subdial_center
-    ring = layout.date_ring_radius
-    pixels = max(5, int(round(layout.radius * 0.026)))
-    inset = ring - layout.radius * 0.018
-    draw = ImageDraw.Draw(image)
-    figure = (22, 20, 18, 255)
-    dot = (28, 24, 20, 255)
-    dot_r = max(0.7, layout.radius * 0.004)
-    for mark in layout.date_numerals():
-        scale = inset / ring
-        px = cx + (mark.x - cx) * scale
-        py = cy + (mark.y - cy) * scale
-        if mark.day % 2 == 1:
-            _crisp_figure(image, mark.text, (px, py), pixels, figure)
-        else:
-            draw.ellipse((px - dot_r, py - dot_r, px + dot_r, py + dot_r), fill=dot)
 
 
 # The disc is smaller than the window so full moon still shows a rim of sky.
@@ -596,54 +433,6 @@ def paint_date_hand(image: Image.Image, layout: DialLayout, day: int) -> None:
     draw.polygon((tip, t_left, t_right), fill=INK)
 
 
-def _taper(draw, cx, cy, angle, length, tail, width) -> None:
-    ux = math.cos(angle)
-    uy = math.sin(angle)
-    px = -uy
-    py = ux
-    tip = (cx + ux * length, cy + uy * length)
-    left = (cx - ux * tail + px * width, cy - uy * tail + py * width)
-    right = (cx - ux * tail - px * width, cy - uy * tail - py * width)
-    draw.polygon((tip, left, right), fill=INK)
-
-
-def _tick(draw, origin, angle, inner, outer, width, color) -> None:
-    x0 = origin[0] + inner * math.cos(angle)
-    y0 = origin[1] + inner * math.sin(angle)
-    x1 = origin[0] + outer * math.cos(angle)
-    y1 = origin[1] + outer * math.sin(angle)
-    draw.line((x0, y0, x1, y1), fill=color, width=width)
-
-
-def _crisp_figure(image, text, xy, pixels: int, fill) -> None:
-    """Draw a date figure large, then reduce it, so a 240px dial keeps a solid black glyph."""
-    scale = 4
-    big = ImageFont.truetype(_TIMES_BOLD, pixels * scale)
-    probe = big.getbbox(text)
-    width = max(1, probe[2] - probe[0] + scale * 4)
-    height = max(1, probe[3] - probe[1] + scale * 4)
-    plate = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    ImageDraw.Draw(plate).text(
-        (width / 2, height / 2),
-        text,
-        font=big,
-        fill=fill,
-        anchor="mm",
-        stroke_width=max(1, big.size // 14),
-        stroke_fill=fill,
-    )
-    small = plate.resize((max(1, width // scale), max(1, height // scale)), Image.Resampling.LANCZOS)
-    snapped = small.load()
-    for y in range(small.height):
-        for x in range(small.width):
-            red, _green, _blue, alpha = snapped[x, y]
-            if alpha > 70 and red < 150:
-                snapped[x, y] = (22, 20, 18, 255)
-            else:
-                snapped[x, y] = (0, 0, 0, 0)
-    image.alpha_composite(small, (int(round(xy[0] - small.width / 2)), int(round(xy[1] - small.height / 2))))
-
-
 def _text(image, text, xy, font, fill) -> None:
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     ImageDraw.Draw(overlay).text(xy, text, font=font, fill=fill, anchor="mm")
@@ -665,18 +454,3 @@ def _tracked(image, text, xy, font, fill, tracking) -> None:
     image.alpha_composite(overlay)
 
 
-def _font(kind: str, size: float) -> ImageFont.FreeTypeFont:
-    pixels = max(8, int(round(size)))
-    key = (kind, pixels)
-    cached = _FONT_CACHE.get(key)
-    if cached is not None:
-        return cached
-    if kind == "roman":
-        path = _TIMES_BOLD
-    elif kind == "sans":
-        path = _ARIAL_BOLD
-    else:
-        path = _TIMES
-    font = ImageFont.truetype(path, pixels)
-    _FONT_CACHE[key] = font
-    return font
