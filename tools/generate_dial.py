@@ -16,6 +16,7 @@ from dial_render import (
     paint_date_hand,
     paint_embossed,
     paint_hands,
+    paint_timeline_milestones,
     render_dial,
     render_moon,
     scaled_battery_icon,
@@ -165,6 +166,7 @@ def _write_preview() -> None:
     month_name = english.months[month - 1]
     shared = label_font(layout)
     legend_font = ImageFont.truetype(_TIMES, max(12, int(radius * 0.075)))
+    paint_timeline_milestones(image, layout, today.year, today.month)
     paint_date_hand(image, layout, day)
     paint_battery(image, layout, 86)
     paint_embossed(image, "86%", layout.battery_text_center, legend_font, INK)

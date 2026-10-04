@@ -66,6 +66,15 @@ _ROOT = Path(__file__).resolve().parents[1]
 _ARTWORK = _ROOT / "resources" / "artwork"
 _BATTERY_FILE = _ROOT / "resources" / "battery.png"
 _BATTERY_ART: Image.Image | None = None
+_MOON_TEXTURE_FILE = _ARTWORK / "moon_texture.png"
+_MOON_TEXTURE: Image.Image | None = None
+
+
+def _get_moon_texture() -> Image.Image:
+    global _MOON_TEXTURE
+    if _MOON_TEXTURE is None:
+        _MOON_TEXTURE = Image.open(_MOON_TEXTURE_FILE).convert("RGBA")
+    return _MOON_TEXTURE
 
 
 def _load_exact(name: str, size: tuple[int, int]) -> Image.Image:
@@ -118,19 +127,10 @@ def _fill_date_hole(image: Image.Image, layout: DialLayout, date_ring: Image.Ima
 
 
 def render_moon(size: int, phase: float) -> Image.Image:
-    """Moon disc behind the round window. 0 is new, 0.5 is full.
-
-    The disc slides left to right over the month, so it is hidden outside the
-    window at new moon and sits fully inside at full moon. Only the lit face
-    is drawn; the dark side is the same sky as the well.
-    """
+    """Photorealistic Moon disc with authentic lunar craters, maria, and terminator."""
     if size < 2:
         raise ValueError(f"moon size must be at least 2, got {size!r}")
-    phase = phase % 1.0
-    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    _paint_moon(image.load(), size, phase)
-    _paint_stars(image.load(), size, phase)
-    return image
+    return _render_photographic_moon(size, phase)
 
 
 def paint_hands(image: Image.Image, layout: DialLayout) -> None:
@@ -228,105 +228,126 @@ def _subdial_rings(draw: ImageDraw.ImageDraw, layout: DialLayout) -> None:
     draw.ellipse((cx - well, cy - well, cx + well, cy + well), fill=SKY)
 
 
-# The disc is smaller than the window so full moon still shows a rim of sky.
-# Travel of one window radius plus the moon radius parks a new moon just outside.
-_MOON_RADIUS = 0.62
-_MOON_TRAVEL = 1.62
 _STAR = (255, 255, 170, 255)
-_MOON_FACE = (255, 255, 255, 255)
-_MARIA_INK = (170, 170, 170, 255)
-# Darker patches, in moon-radius units. Flat colors, so the face does not band.
-_MARIA = (
-    (-0.32, -0.02, 0.20, 0.14),
-    (0.22, 0.20, 0.16, 0.12),
-    (-0.06, 0.32, 0.14, 0.10),
-    (0.30, -0.26, 0.12, 0.10),
-)
 
 _STARS = (
-    (0.22, 0.28),
-    (0.78, 0.24),
-    (0.50, 0.16),
-    (0.30, 0.72),
-    (0.72, 0.70),
-    (0.16, 0.52),
-    (0.84, 0.48),
-    (0.38, 0.36),
-    (0.62, 0.42),
-    (0.44, 0.62),
-    (0.68, 0.58),
-    (0.30, 0.46),
+    (0.950, 0.500),
+    (0.864, 0.765),
+    (0.639, 0.928),
+    (0.361, 0.928),
+    (0.136, 0.765),
+    (0.050, 0.500),
+    (0.136, 0.235),
+    (0.361, 0.072),
+    (0.639, 0.072),
+    (0.864, 0.235),
 )
 
 
-def _paint_moon(pixels, size: int, phase: float) -> None:
-    """Sky-blue window. The moon is clipped by it, and the unlit side is left as sky."""
+def _render_photographic_moon(size: int, phase: float) -> Image.Image:
+    """Photorealistic Moon disc with authentic lunar craters, maria, and terminator."""
+    phase = phase % 1.0
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    pixels = img.load()
     cx = cy = (size - 1) / 2.0
     radius = (size - 1) / 2.0
-    moon_x, moon_y, moon_radius = _moon_place(cx, cy, radius, phase)
     radius2 = radius * radius
-    moon2 = moon_radius * moon_radius
+
+    # Deep blue night sky background
     for y in range(size):
         for x in range(size):
             dx = x - cx
             dy = y - cy
-            if dx * dx + dy * dy > radius2:
-                continue
-            pixels[x, y] = SKY
-            mx = x - moon_x
-            my = y - moon_y
-            if moon_radius <= 0 or mx * mx + my * my > moon2:
-                continue
-            u = mx / moon_radius
-            v = my / moon_radius
-            if _phase_lit(u, v, phase):
-                pixels[x, y] = _moon_tone(u, v)
+            if dx * dx + dy * dy <= radius2:
+                pixels[x, y] = SKY
 
+    # Scale photographic moon to 88% of well
+    m_diam = max(4, int(round(size * 0.88)))
+    scaled = _get_moon_texture().resize((m_diam, m_diam), Image.Resampling.LANCZOS)
+    s_pix = scaled.load()
+    m_cx = (m_diam - 1) / 2.0
+    m_cy = (m_diam - 1) / 2.0
+    m_rad = (m_diam - 1) / 2.0
+    ox = int(round(cx - m_cx))
+    oy = int(round(cy - m_cy))
 
-def _phase_lit(u: float, v: float, phase: float) -> bool:
-    """Northern-hemisphere limb. Waxing lights the right side, waning the left."""
-    edge = math.sqrt(max(0.0, 1.0 - v * v))
     sweep = math.cos(2.0 * math.pi * phase)
-    if phase <= 0.5:
-        return u > sweep * edge
-    return u < -sweep * edge
 
+    for my in range(m_diam):
+        for mx in range(m_diam):
+            u = (mx - m_cx) / m_rad
+            v = (my - m_cy) / m_rad
+            if u * u + v * v > 1.0:
+                continue
+            src = s_pix[mx, my]
+            if src[3] < 30:
+                continue
 
-def _moon_tone(u: float, v: float):
-    """White face with flat gray maria. A smooth shade turns into colored rings."""
-    for mx, my, rx, ry in _MARIA:
-        nx = (u - mx) / rx
-        ny = (v - my) / ry
-        if nx * nx + ny * ny < 1.0:
-            return _MARIA_INK
-    return _MOON_FACE
+            edge = math.sqrt(max(0.0, 1.0 - v * v))
+            # Northern hemisphere: waxing (0 < phase <= 0.5) lights right (u > sweep * edge)
+            # waning (0.5 < phase < 1.0) lights left (u < -sweep * edge)
+            lit = (u > sweep * edge) if phase <= 0.5 else (u < -sweep * edge)
 
+            px = ox + mx
+            py = oy + my
+            if 0 <= px < size and 0 <= py < size:
+                if (px - cx) ** 2 + (py - cy) ** 2 <= radius2:
+                    if lit:
+                        # Crisp bright photographic moon
+                        r = min(255, int(src[0] * 1.12 + 10))
+                        g = min(255, int(src[1] * 1.10 + 10))
+                        b = min(255, int(src[2] * 1.08 + 10))
+                        pixels[px, py] = (r, g, b, 255)
+                    else:
+                        # Subtle realistic earthshine on dark side
+                        er = int(src[0] * 0.10)
+                        eg = int(src[1] * 0.12)
+                        eb = int(src[2] * 0.22)
+                        pixels[px, py] = (er, eg, eb, 255)
 
-def _moon_place(cx, cy, radius, phase):
-    travel = radius * _MOON_TRAVEL
-    moon_x = cx + (phase - 0.5) * 2.0 * travel
-    return moon_x, cy, radius * _MOON_RADIUS
-
-
-def _paint_stars(pixels, size: int, phase: float) -> None:
-    cx = cy = (size - 1) / 2.0
-    radius = (size - 1) / 2.0
-    moon_x, moon_y, moon_radius = _moon_place(cx, cy, radius, phase)
-    for index, (fx, fy) in enumerate(_STARS):
+    # Subtle star field in sky rim
+    for fx, fy in _STARS:
         sx = int(round(fx * (size - 1)))
         sy = int(round(fy * (size - 1)))
-        if (sx - moon_x) ** 2 + (sy - moon_y) ** 2 < (moon_radius * 1.05) ** 2:
-            continue
-        pixels[sx, sy] = _STAR
-        if index in (0, 4):
-            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                px = sx + dx
-                py = sy + dy
-                if not (0 <= px < size and 0 <= py < size):
-                    continue
-                if (px - cx) ** 2 + (py - cy) ** 2 > (radius * 0.90) ** 2:
-                    continue
-                pixels[px, py] = _STAR
+        if 0 <= sx < size and 0 <= sy < size:
+            if (sx - cx) ** 2 + (sy - cy) ** 2 <= (radius * 0.94) ** 2:
+                pixels[sx, sy] = _STAR
+
+    return img
+
+
+def paint_timeline_milestones(image: Image.Image, layout: DialLayout, year: int, month: int) -> None:
+    """Astronomical phase milestone markers along the inner track of the date dial."""
+    draw = ImageDraw.Draw(image)
+    from dial_layout import moon_phase
+    phases = [(day, moon_phase(year, month, day)) for day in range(1, 32)]
+    milestones = {
+        'new': min(phases, key=lambda x: min(x[1], 1.0 - x[1]))[0],
+        'first': min(phases, key=lambda x: abs(x[1] - 0.25))[0],
+        'full': min(phases, key=lambda x: abs(x[1] - 0.50))[0],
+        'third': min(phases, key=lambda x: abs(x[1] - 0.75))[0],
+    }
+
+    sub_x, sub_y = layout.subdial_center
+    pip_r = max(2, int(round(layout.radius * 0.012)))
+    track_inner_r = layout.radius * 0.203
+
+    for kind, day in milestones.items():
+        angle = clock_angle(day - 1, 31)
+        px = sub_x + track_inner_r * math.cos(angle)
+        py = sub_y + track_inner_r * math.sin(angle)
+        draw.ellipse((px - pip_r - 0.5, py - pip_r - 0.5, px + pip_r + 0.5, py + pip_r + 0.5), outline=(100, 95, 90, 200), width=1)
+        if kind == 'full':
+            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(255, 252, 240, 255))
+        elif kind == 'new':
+            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(12, 25, 50, 255))
+        elif kind == 'first':
+            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(12, 25, 50, 255))
+            draw.pieslice((px - pip_r, py - pip_r, px + pip_r, py + pip_r), start=-90, end=90, fill=(255, 252, 240, 255))
+        elif kind == 'third':
+            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(12, 25, 50, 255))
+            draw.pieslice((px - pip_r, py - pip_r, px + pip_r, py + pip_r), start=90, end=270, fill=(255, 252, 240, 255))
+
 
 
 def fit_font(text: str, path: str, start_px: int, max_width: float, index: int = 0, max_px: int | None = None):

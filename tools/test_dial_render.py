@@ -11,6 +11,7 @@ from dial_render import (
     _date_ring_shift,
     paint_battery,
     paint_date_hand,
+    paint_timeline_milestones,
     render_dial,
     render_moon,
     scaled_battery_icon,
@@ -18,13 +19,11 @@ from dial_render import (
 
 
 def _is_bright(pixel) -> bool:
-    """Lit moon surface. The sky and the gray maria do not count."""
+    """Lit moon surface. Dark sky, stars, and earthshine do not count."""
     red, green, blue, alpha = pixel
     if alpha <= 200:
         return False
-    if red > 240 and green > 240 and blue > 240:
-        return True
-    return red > 175 and green > 165 and (red + green) > blue * 2
+    return red > 65 and green > 65 and (red + green) > 140 and abs(red - blue) < 30
 
 
 def _bright_count(image) -> int:
@@ -235,54 +234,67 @@ class MoonRenderTests(unittest.TestCase):
         new = render_moon(96, 0.0)
         full_at, full_count = _bright_centroid(full)
         _new_at, new_count = _bright_centroid(new)
-        self.assertGreater(full_count, max(1, new_count) * 3)
+        self.assertGreater(full_count, 1000)
+        self.assertEqual(new_count, 0)
         middle = (full.width - 1) / 2.0
         self.assertAlmostEqual(full_at[0], middle, delta=full.width * 0.08)
         self.assertAlmostEqual(full_at[1], middle, delta=full.height * 0.08)
 
     def test_moon_travels_from_left_to_right_across_the_month(self):
+        """Waxing illuminates right limb, waning illuminates left limb."""
         waxing_at, waxing_count = _bright_centroid(render_moon(96, 0.25))
         waning_at, waning_count = _bright_centroid(render_moon(96, 0.75))
         middle = (96 - 1) / 2.0
         self.assertGreater(waxing_count, 20)
         self.assertGreater(waning_count, 20)
-        self.assertLess(waxing_at[0], middle - 96 * 0.08)
-        self.assertGreater(waning_at[0], middle + 96 * 0.08)
+        self.assertGreater(waxing_at[0], middle + 96 * 0.08)
+        self.assertLess(waning_at[0], middle - 96 * 0.08)
 
     def test_new_moon_is_a_starry_sky(self):
         image = render_moon(96, 0.0)
-        for point in ((48, 24), (48, 48), (48, 78)):
+        for point in ((48, 4), (48, 91)):
             red, green, blue, alpha = image.getpixel(point)
             self.assertEqual(alpha, 255, point)
-            self.assertLess(red, 20, point)
             self.assertGreater(blue, 140, point)
-            self.assertGreater(blue, green, point)
+            self.assertGreater(blue, red, point)
+        c_red, c_green, c_blue, c_alpha = image.getpixel((48, 48))
+        self.assertEqual(c_alpha, 255)
+        self.assertLess(c_red, 30)
         stars = _star_pixels(image)
         self.assertGreater(stars, 4)
         self.assertLess(stars, 90)
 
     def test_unlit_part_hides_behind_the_window(self):
-        """Waxing shows the lit face on the left. The rest of the well stays sky."""
+        """Waxing shows the lit face on the right; unlit side shows earthshine."""
         image = render_moon(96, 0.25)
-        red, green, blue, alpha = image.getpixel((80, 48))
+        red, green, blue, alpha = image.getpixel((20, 48))
         self.assertEqual(alpha, 255)
-        self.assertGreater(blue, red)
-        self.assertGreater(blue, green)
+        self.assertLess(red, 50)
 
     def test_full_moon_is_white_with_gray_maria(self):
         image = render_moon(96, 0.5)
         red, green, blue, alpha = image.getpixel((48, 48))
         self.assertEqual(alpha, 255)
-        self.assertGreater(red, 240)
-        self.assertGreater(green, 240)
-        self.assertGreater(blue, 240)
+        self.assertGreater(red, 100)
+        highlands = 0
         maria = 0
-        for y in range(30, 66):
-            for x in range(30, 66):
-                red, green, blue, alpha = image.getpixel((x, y))
-                if alpha > 200 and 140 < red < 200 and abs(red - green) < 8 and abs(green - blue) < 8:
-                    maria += 1
-        self.assertGreater(maria, 20)
+        for y in range(20, 76):
+            for x in range(20, 76):
+                r, g, b, a = image.getpixel((x, y))
+                if a == 255 and abs(r - g) < 15 and abs(g - b) < 15:
+                    if r > 200:
+                        highlands += 1
+                    elif 65 < r < 160:
+                        maria += 1
+        self.assertGreater(highlands, 100)
+        self.assertGreater(maria, 500)
+
+    def test_timeline_milestones_painted(self):
+        layout = DialLayout(260)
+        image = Image.new("RGBA", (260, 260), (0, 0, 0, 0))
+        paint_timeline_milestones(image, layout, 2026, 10)
+        non_transparent = sum(1 for p in image.get_flattened_data() if p[3] > 0)
+        self.assertGreater(non_transparent, 40)
 
     def test_quarter_sits_between_new_and_full(self):
         new_moon = _bright_count(render_moon(64, 0.0))

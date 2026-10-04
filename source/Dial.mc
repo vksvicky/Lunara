@@ -91,6 +91,7 @@ class Dial {
         var moonX = cx - moon.getWidth() / 2.0;
         var moonY = cy + SUBDIAL_Y * radius - moon.getHeight() / 2.0;
         dc.drawBitmap(moonX, moonY, moon);
+        Dial._drawTimelineMilestones(dc, cx, cy + SUBDIAL_Y * radius, radius, moment);
         Dial._dateHighlight(dc, cx, cy + SUBDIAL_Y * radius, radius, day);
     }
 
@@ -118,6 +119,104 @@ class Dial {
             }
         }
         dc.drawBitmap(left, top, icon);
+    }
+
+    static function _abs(val as Lang.Float) as Lang.Float {
+        return val < 0.0 ? -val : val;
+    }
+
+    static function getMonthMilestones(moment as Time.Moment) as Lang.Array<Lang.Number> {
+        var info = Gregorian.info(moment, Time.FORMAT_SHORT);
+        var curDay = info.day as Lang.Number;
+        var curPhase = Dial.moonPhase(moment);
+
+        var bestNew = 1;
+        var diffNew = 2.0;
+        var bestFirst = 1;
+        var diffFirst = 2.0;
+        var bestFull = 1;
+        var diffFull = 2.0;
+        var bestThird = 1;
+        var diffThird = 2.0;
+
+        for (var d = 1; d <= 31; d++) {
+            var p = curPhase + (d - curDay) / SYNODIC_DAYS;
+            p = p - Math.floor(p);
+            if (p < 0.0) {
+                p = p + 1.0;
+            }
+
+            var dNew = p < (1.0 - p) ? p : (1.0 - p);
+            if (dNew < diffNew) {
+                diffNew = dNew;
+                bestNew = d;
+            }
+
+            var dFirst = _abs(p - 0.25);
+            if (dFirst < diffFirst) {
+                diffFirst = dFirst;
+                bestFirst = d;
+            }
+
+            var dFull = _abs(p - 0.50);
+            if (dFull < diffFull) {
+                diffFull = dFull;
+                bestFull = d;
+            }
+
+            var dThird = _abs(p - 0.75);
+            if (dThird < diffThird) {
+                diffThird = dThird;
+                bestThird = d;
+            }
+        }
+
+        return [bestNew, bestFirst, bestFull, bestThird];
+    }
+
+    static function _drawTimelineMilestones(dc, sx, sy, radius, moment as Time.Moment) {
+        var milestones = Dial.getMonthMilestones(moment);
+        var trackR = radius * 0.203;
+        var pipR = (radius * 0.012).toNumber();
+        if (pipR < 2) { pipR = 2; }
+
+        for (var i = 0; i < 4; i++) {
+            var day = milestones[i];
+            var angle = -Math.PI / 2.0 + ((day - 1) / 31.0) * Math.PI * 2.0;
+            var px = sx + trackR * Math.cos(angle);
+            var py = sy + trackR * Math.sin(angle);
+
+            if (i == 0) {
+                // New Moon: dark navy
+                dc.setColor(0x0C1932, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(px, py, pipR);
+            } else if (i == 1) {
+                // First Quarter: left dark navy, right ivory
+                dc.setColor(0x0C1932, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(px, py, pipR);
+                dc.setColor(0xFFFCF0, Graphics.COLOR_TRANSPARENT);
+                dc.setClip(px, py - pipR, pipR + 2, pipR * 2 + 2);
+                dc.fillCircle(px, py, pipR);
+                dc.clearClip();
+            } else if (i == 2) {
+                // Full Moon: ivory
+                dc.setColor(0xFFFCF0, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(px, py, pipR);
+            } else if (i == 3) {
+                // Third Quarter: left ivory, right dark navy
+                dc.setColor(0x0C1932, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(px, py, pipR);
+                dc.setColor(0xFFFCF0, Graphics.COLOR_TRANSPARENT);
+                dc.setClip(px - pipR - 1, py - pipR, pipR + 1, pipR * 2 + 2);
+                dc.fillCircle(px, py, pipR);
+                dc.clearClip();
+            }
+
+            // Outline pip
+            dc.setColor(0x645F5A, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
+            dc.drawCircle(px, py, pipR);
+        }
     }
 
     static function _dateHighlight(dc, sx, sy, radius, day) {
