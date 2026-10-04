@@ -107,6 +107,17 @@ class DialLayoutTests(unittest.TestCase):
         self.assertLess(weekday.center[1], brand[1])
         self.assertLess(brand[1], sub[1])
 
+    def test_month_weekday_and_name_are_evenly_spaced(self):
+        cy = self.layout.center[1]
+        radius = self.layout.radius
+        month = (self.layout.month_center[1] - cy) / radius
+        weekday = (self.layout.weekday_window.center[1] - cy) / radius
+        brand = (self.layout.brand_center[1] - cy) / radius
+        self.assertAlmostEqual(weekday - month, brand - weekday, places=2)
+        # Below the Roman XII, and above the date ring.
+        self.assertGreater(month, -0.60)
+        self.assertLess(brand, -0.22)
+
     def test_date_hand_points_at_the_day_on_the_ring(self):
         sub = self.layout.subdial_center
         first = self.layout.date_hand_tip(1)

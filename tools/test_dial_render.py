@@ -7,13 +7,24 @@ from pathlib import Path
 from PIL import Image
 
 from dial_layout import DialLayout, clock_angle
-from dial_render import _date_ring_shift, paint_battery, render_dial, render_moon
+from dial_render import (
+    _date_ring_shift,
+    paint_battery,
+    paint_date_hand,
+    render_dial,
+    render_moon,
+    scaled_battery_icon,
+)
 
 
 def _is_bright(pixel) -> bool:
-    """Lit moon surface. The navy sky and the covered dark side do not count."""
+    """Lit moon surface. The sky and the gray maria do not count."""
     red, green, blue, alpha = pixel
-    return alpha > 200 and red > 175 and green > 165 and (red + green) > blue * 2
+    if alpha <= 200:
+        return False
+    if red > 240 and green > 240 and blue > 240:
+        return True
+    return red > 175 and green > 165 and (red + green) > blue * 2
 
 
 def _bright_count(image) -> int:
@@ -63,7 +74,7 @@ class DialRenderTests(unittest.TestCase):
         self.assertEqual(image.getpixel((0, 0))[3], 0)
 
     def test_placed_rings_are_copied_without_resampling(self):
-        """Opaque pixels of the per-size artwork survive unchanged."""
+        """Romans, hour bars, and the date ring keep the supplied artwork."""
         size = 240
         image = render_dial(size)
         artwork = Path(__file__).resolve().parents[1] / "resources" / "artwork"
@@ -77,7 +88,8 @@ class DialRenderTests(unittest.TestCase):
             for x in range(size):
                 top = outer.getpixel((x, y))
                 if top[3] == 255:
-                    self.assertEqual(image.getpixel((x, y)), top, f"outer_dial at {x},{y}")
+                    if not _on_hour_index(x, y, size):
+                        self.assertEqual(image.getpixel((x, y)), top, f"outer_dial at {x},{y}")
                     copied += 1
                     continue
                 sx = x - dx
@@ -89,6 +101,21 @@ class DialRenderTests(unittest.TestCase):
                     self.assertEqual(image.getpixel((x, y)), band, f"date_ring at {x},{y}")
                     copied += 1
         self.assertGreater(copied, 1000)
+
+    def test_hour_bars_are_dark_enough_to_read(self):
+        size = 260
+        layout = DialLayout(size)
+        image = render_dial(size)
+        angle = -math.pi / 2.0 + 2.0 * (math.tau / 12.0)
+        x = int(round(layout.center[0] + math.cos(angle) * layout.radius * 0.67))
+        y = int(round(layout.center[1] + math.sin(angle) * layout.radius * 0.67))
+        dark = 0
+        for dy in range(-2, 3):
+            for dx in range(-2, 3):
+                red, green, blue, alpha = image.getpixel((x + dx, y + dy))
+                if alpha > 200 and red < 40 and green < 40 and blue < 40:
+                    dark += 1
+        self.assertGreater(dark, 0)
 
     def test_month_and_weekday_sit_on_the_open_dial(self):
         image = render_dial(240)
@@ -104,15 +131,16 @@ class DialRenderTests(unittest.TestCase):
             pixel = image.getpixel((int(point[0]), int(point[1])))
             self.assertLess(abs(sum(pixel[:3]) - sum(field[:3])), 20, point)
 
-    def test_moon_well_is_dark_blue(self):
+    def test_moon_well_is_sky_blue(self):
         layout = DialLayout(240)
         image = render_dial(240)
         x = int(round(layout.subdial_center[0]))
         y = int(round(layout.subdial_center[1]))
         red, green, blue, alpha = image.getpixel((x, y))
         self.assertEqual(alpha, 255)
-        self.assertGreater(blue, red)
-        self.assertLess(green, 90)
+        self.assertLess(red, 20)
+        self.assertGreater(blue, 140)
+        self.assertGreater(blue, green)
 
     def test_battery_icon_is_the_placed_artwork_and_fills_from_the_left(self):
         layout = DialLayout(240)
@@ -161,6 +189,45 @@ class DialRenderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             render_dial(241)
 
+    def test_battery_shell_has_no_lightning_mark(self):
+        icon = scaled_battery_icon(96)
+        pixels = icon.load()
+        mid = icon.height // 2
+        interior = range(int(icon.width * 0.30), int(icon.width * 0.62))
+        dark = [
+            x
+            for x in interior
+            if pixels[x, mid][3] > 128 and pixels[x, mid][0] < 40
+        ]
+        self.assertEqual(dark, [])
+
+    def test_date_marker_highlights_day_on_the_ring(self):
+        layout = DialLayout(260)
+        image = Image.new("RGBA", (260, 260), (0, 0, 0, 0))
+        paint_date_hand(image, layout, 1)
+        tip = layout.date_hand_tip(1)
+        r = int(round(layout.radius * 0.024))
+        # Check that accent color pixels exist on the ring around day 1
+        x, y = int(round(tip[0])), int(round(tip[1] - r))
+        pixel = image.getpixel((x, y))
+        self.assertGreater(pixel[3], 200)
+        # Terracotta orange (225, 75, 45)
+        self.assertGreater(pixel[0], 200)
+        self.assertLess(pixel[2], 80)
+        # Moon center is pure transparent (no shaft across the moon)
+        sx, sy = int(round(layout.subdial_center[0])), int(round(layout.subdial_center[1]))
+        self.assertEqual(image.getpixel((sx, sy))[3], 0)
+
+    def test_dial_bitmaps_are_not_dithered(self):
+        xml = (
+            Path(__file__).resolve().parents[1]
+            / "resources-round-260x260"
+            / "drawables"
+            / "drawables.xml"
+        ).read_text()
+        for name in ("dial_bg.png", "battery_icon.png", "moon_0.png"):
+            self.assertIn(f'filename="{name}" dithering="none"', xml)
+
 
 class MoonRenderTests(unittest.TestCase):
     def test_full_moon_is_centered_and_brighter_than_new(self):
@@ -187,7 +254,8 @@ class MoonRenderTests(unittest.TestCase):
         for point in ((48, 24), (48, 48), (48, 78)):
             red, green, blue, alpha = image.getpixel(point)
             self.assertEqual(alpha, 255, point)
-            self.assertGreater(blue, red, point)
+            self.assertLess(red, 20, point)
+            self.assertGreater(blue, 140, point)
             self.assertGreater(blue, green, point)
         stars = _star_pixels(image)
         self.assertGreater(stars, 4)
@@ -201,15 +269,20 @@ class MoonRenderTests(unittest.TestCase):
         self.assertGreater(blue, red)
         self.assertGreater(blue, green)
 
-    def test_full_moon_shows_a_face(self):
+    def test_full_moon_is_white_with_gray_maria(self):
         image = render_moon(96, 0.5)
-        tones = set()
+        red, green, blue, alpha = image.getpixel((48, 48))
+        self.assertEqual(alpha, 255)
+        self.assertGreater(red, 240)
+        self.assertGreater(green, 240)
+        self.assertGreater(blue, 240)
+        maria = 0
         for y in range(30, 66):
             for x in range(30, 66):
                 red, green, blue, alpha = image.getpixel((x, y))
-                if alpha > 200 and red > 80 and not (blue > red and blue > green):
-                    tones.add((red, green, blue))
-        self.assertGreater(len(tones), 6)
+                if alpha > 200 and 140 < red < 200 and abs(red - green) < 8 and abs(green - blue) < 8:
+                    maria += 1
+        self.assertGreater(maria, 20)
 
     def test_quarter_sits_between_new_and_full(self):
         new_moon = _bright_count(render_moon(64, 0.0))
@@ -222,6 +295,21 @@ class MoonRenderTests(unittest.TestCase):
         wrapped = list(render_moon(32, 1.25).get_flattened_data())
         quarter = list(render_moon(32, 0.25).get_flattened_data())
         self.assertEqual(wrapped, quarter)
+
+
+def _on_hour_index(x: int, y: int, size: int) -> bool:
+    center = (size - 1) / 2.0
+    radius = size / 2.0
+    dist = math.hypot(x - center, y - center) / radius
+    if not (0.55 < dist < 0.78):
+        return False
+    bearing = math.atan2(y - center, x - center)
+    for hour in (1, 2, 4, 5, 7, 8, 10, 11):
+        angle = -math.pi / 2.0 + hour * (math.tau / 12.0)
+        delta = (bearing - angle + math.pi) % (2 * math.pi) - math.pi
+        if abs(delta) < math.radians(6):
+            return True
+    return False
 
 
 def _roman_tones(image, layout, x: float, y: float) -> dict[str, int]:

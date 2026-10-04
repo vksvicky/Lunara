@@ -1,12 +1,12 @@
 <drawables>
-    <bitmap id="dial_bg" filename="dial_bg.png" />
-    <bitmap id="battery_icon" filename="battery_icon.png" />
-    <bitmap id="moon_0" filename="moon_0.png" />
-    <bitmap id="moon_1" filename="moon_1.png" />
-    <bitmap id="moon_2" filename="moon_2.png" />
-    <bitmap id="moon_3" filename="moon_3.png" />
-    <bitmap id="moon_4" filename="moon_4.png" />
-    <bitmap id="moon_5" filename="moon_5.png" />
-    <bitmap id="moon_6" filename="moon_6.png" />
-    <bitmap id="moon_7" filename="moon_7.png" />
+    <bitmap id="dial_bg" filename="dial_bg.png" dithering="none" />
+    <bitmap id="battery_icon" filename="battery_icon.png" dithering="none" />
+    <bitmap id="moon_0" filename="moon_0.png" dithering="none" />
+    <bitmap id="moon_1" filename="moon_1.png" dithering="none" />
+    <bitmap id="moon_2" filename="moon_2.png" dithering="none" />
+    <bitmap id="moon_3" filename="moon_3.png" dithering="none" />
+    <bitmap id="moon_4" filename="moon_4.png" dithering="none" />
+    <bitmap id="moon_5" filename="moon_5.png" dithering="none" />
+    <bitmap id="moon_6" filename="moon_6.png" dithering="none" />
+    <bitmap id="moon_7" filename="moon_7.png" dithering="none" />
 </drawables>

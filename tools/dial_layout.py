@@ -28,21 +28,21 @@ NEW_MOON_EPOCH_SECONDS = 947182440
 # Romans sit in from the edge. The month, the paired windows, and the
 # name stack under XII. The moon ring fills the lower half and clears VI.
 _ROMAN_RADIUS = 0.80
-_SUBDIAL_CENTER_Y = 0.18
-_DATE_RING_RADIUS = 0.30
-_MOON_WELL_RADIUS = 0.175
-_DATE_HAND_RADIUS = 0.30
-_MONTH_Y = -0.48
+_SUBDIAL_CENTER_Y = 0.335
+_DATE_RING_RADIUS = 0.2325
+_MOON_WELL_RADIUS = 0.195
+_DATE_HAND_RADIUS = 0.2325
+_MONTH_Y = -0.52
 _MONTH_HALF_W = 0.27
 _MONTH_HALF_H = 0.044
-_WINDOW_Y = -0.36
+_WINDOW_Y = -0.41
 _WINDOW_HALF_W = 0.145
 _WINDOW_HALF_H = 0.050
 _WINDOW_CX = 0.0
-_BRAND_Y = -0.26
+_BRAND_Y = -0.30
 _BATTERY_X = -0.42
 _BATTERY_Y = -0.16
-_BATTERY_TEXT_DY = 0.09
+_BATTERY_TEXT_DY = 0.10
 
 
 @dataclass(frozen=True)

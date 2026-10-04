@@ -217,7 +217,8 @@ def validate(image: Image.Image, layout: DialLayout, with_hands: bool) -> list[s
         ("DATE", layout.date_hand_tip(day)),
     ]
     for name, point in checks:
-        count = _paint_count(image, point[0], point[1], half) if name == "BATTERY" else _ink_count(image, point[0], point[1], half)
+        sample_half = int(round(layout.radius * 0.12)) if name == "BATTERY" else half
+        count = _paint_count(image, point[0], point[1], sample_half) if name == "BATTERY" else _ink_count(image, point[0], point[1], sample_half)
         if count < 4:
             issues.append(f"{name}: expected ink was not drawn.")
     if layout.battery_center[0] >= layout.center[0] or layout.battery_text_center[1] <= layout.battery_center[1]:

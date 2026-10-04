@@ -16,8 +16,8 @@ from dataclasses import dataclass
 
 FACE_SMALL_PX = 11
 FACE_LARGE_PX = 16
-LEGEND_SMALL_PX = 8
-LEGEND_LARGE_PX = 12
+LEGEND_SMALL_PX = 12
+LEGEND_LARGE_PX = 18
 PUA_START = 0xE000
 
 _DEVICE = {
@@ -152,8 +152,11 @@ def legend_shaped_words() -> list[tuple[str, str]]:
 
 
 def legend_charset() -> str:
-    """Characters used by the side legends. Hindi words are shaped glyphs."""
-    chars: list[str] = []
+    """Characters used under the battery, plus the old side legends.
+
+    Hindi words are shaped glyphs. The percentage needs digits, a sign, and a dash.
+    """
+    chars: list[str] = list("0123456789%-")
     for lang in LANGUAGES:
         if lang.key == "hin":
             continue

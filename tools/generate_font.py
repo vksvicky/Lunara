@@ -107,7 +107,7 @@ def _write_face_font(
     for glyph in placed:
         if glyph["image"] is not None:
             image.paste(glyph["image"], (glyph["atlas_x"], glyph["atlas_y"]))
-    _save_palette(image, png_path)
+    _save_coverage(image, png_path)
 
     lines = [
         f'info face="Lunara" size={size} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=1,1 outline=0',
@@ -155,7 +155,7 @@ def _measure(font: ImageFont.FreeTypeFont, text: str, size: int, code: int | Non
         "width": image.width,
         "height": image.height,
         "xoffset": left,
-        "yoffset": ascent + top,
+        "yoffset": top,
         "advance": advance,
         "image": image,
         "atlas_x": 0,
@@ -163,11 +163,11 @@ def _measure(font: ImageFont.FreeTypeFont, text: str, size: int, code: int | Non
     }
 
 
-def _save_palette(image: Image.Image, path: Path) -> None:
-    paletted = Image.new("P", image.size, 0)
-    paletted.putpalette([255, 255, 255] * 256)
-    paletted.paste(image, (0, 0))
-    paletted.save(path, format="PNG", transparency=bytes(range(256)))
+def _save_coverage(image: Image.Image, path: Path) -> None:
+    """White glyphs. Coverage stays in the alpha so a regular serif keeps its shape."""
+    rgba = Image.new("RGBA", image.size, (255, 255, 255, 0))
+    rgba.putalpha(image)
+    rgba.save(path, format="PNG")
 
 
 if __name__ == "__main__":

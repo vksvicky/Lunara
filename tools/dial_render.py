@@ -16,7 +16,8 @@ from dial_layout import BRAND, DialLayout, clock_angle
 
 IVORY = (246, 240, 228, 255)
 INK = (28, 26, 22, 255)
-NAVY = (8, 18, 42, 255)
+# A 64-color sky blue. Near-black navy quantizes to black on these watches.
+SKY = (0, 85, 170, 255)
 
 _TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
 _SONG = "/System/Library/Fonts/Supplemental/Songti.ttc"
@@ -38,6 +39,27 @@ def render_dial(size: int) -> Image.Image:
     image.alpha_composite(date_ring, shift)
     image.alpha_composite(_load_exact(f"outer_dial_{size}.png", image.size))
     return image
+
+
+def _darken_hour_bars(image: Image.Image, layout: DialLayout) -> None:
+    """The supplied indices are light gray, so they vanish on the cream dial."""
+    draw = ImageDraw.Draw(image)
+    width = max(2, int(round(layout.radius * 0.016)))
+    cx, cy = layout.center
+    for hour in (1, 2, 4, 5, 7, 8, 10, 11):
+        angle = -math.pi / 2.0 + hour * (math.tau / 12.0)
+        inner = layout.radius * 0.60
+        outer = layout.radius * 0.75
+        draw.line(
+            (
+                cx + math.cos(angle) * inner,
+                cy + math.sin(angle) * inner,
+                cx + math.cos(angle) * outer,
+                cy + math.sin(angle) * outer,
+            ),
+            fill=(0, 0, 0, 255),
+            width=width,
+        )
 
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -92,7 +114,7 @@ def _fill_date_hole(image: Image.Image, layout: DialLayout, date_ring: Image.Ima
     if hole < 4:
         return
     cx, cy = layout.subdial_center
-    ImageDraw.Draw(image).ellipse((cx - hole, cy - hole, cx + hole, cy + hole), fill=NAVY)
+    ImageDraw.Draw(image).ellipse((cx - hole, cy - hole, cx + hole, cy + hole), fill=SKY)
 
 
 def render_moon(size: int, phase: float) -> Image.Image:
@@ -199,25 +221,26 @@ def brand_half_width(layout: DialLayout) -> float:
 
 def _subdial_rings(draw: ImageDraw.ImageDraw, layout: DialLayout) -> None:
     cx, cy = layout.subdial_center
-    ring = layout.date_ring_radius
     well = layout.moon_well_radius
-    outer = ring + layout.radius * 0.048
+    outer = layout.radius * 0.27
 
     draw.ellipse((cx - outer, cy - outer, cx + outer, cy + outer), fill=(240, 234, 222, 255))
-    draw.ellipse((cx - well, cy - well, cx + well, cy + well), fill=NAVY)
+    draw.ellipse((cx - well, cy - well, cx + well, cy + well), fill=SKY)
 
 
 # The disc is smaller than the window so full moon still shows a rim of sky.
 # Travel of one window radius plus the moon radius parks a new moon just outside.
 _MOON_RADIUS = 0.62
 _MOON_TRAVEL = 1.62
-_STAR = (248, 220, 150, 255)
-# Darker patches, in moon-radius units, so the face reads as a moon.
+_STAR = (255, 255, 170, 255)
+_MOON_FACE = (255, 255, 255, 255)
+_MARIA_INK = (170, 170, 170, 255)
+# Darker patches, in moon-radius units. Flat colors, so the face does not band.
 _MARIA = (
-    (-0.22, -0.10, 0.28, 0.18, 0.28),
-    (0.18, 0.16, 0.20, 0.14, 0.22),
-    (-0.05, 0.28, 0.16, 0.10, 0.16),
-    (0.30, -0.22, 0.12, 0.10, 0.18),
+    (-0.32, -0.02, 0.20, 0.14),
+    (0.22, 0.20, 0.16, 0.12),
+    (-0.06, 0.32, 0.14, 0.10),
+    (0.30, -0.26, 0.12, 0.10),
 )
 
 _STARS = (
@@ -228,11 +251,16 @@ _STARS = (
     (0.72, 0.70),
     (0.16, 0.52),
     (0.84, 0.48),
+    (0.38, 0.36),
+    (0.62, 0.42),
+    (0.44, 0.62),
+    (0.68, 0.58),
+    (0.30, 0.46),
 )
 
 
 def _paint_moon(pixels, size: int, phase: float) -> None:
-    """Navy window. The moon is clipped by it, and the unlit side is left as sky."""
+    """Sky-blue window. The moon is clipped by it, and the unlit side is left as sky."""
     cx = cy = (size - 1) / 2.0
     radius = (size - 1) / 2.0
     moon_x, moon_y, moon_radius = _moon_place(cx, cy, radius, phase)
@@ -244,7 +272,7 @@ def _paint_moon(pixels, size: int, phase: float) -> None:
             dy = y - cy
             if dx * dx + dy * dy > radius2:
                 continue
-            pixels[x, y] = NAVY
+            pixels[x, y] = SKY
             mx = x - moon_x
             my = y - moon_y
             if moon_radius <= 0 or mx * mx + my * my > moon2:
@@ -265,17 +293,13 @@ def _phase_lit(u: float, v: float, phase: float) -> bool:
 
 
 def _moon_tone(u: float, v: float):
-    """Warm gray face with a few darker maria and a darker limb."""
-    disc = math.sqrt(u * u + v * v)
-    shade = 0.78 + 0.22 * math.sqrt(max(0.0, 1.0 - disc * disc))
-    for mx, my, rx, ry, depth in _MARIA:
+    """White face with flat gray maria. A smooth shade turns into colored rings."""
+    for mx, my, rx, ry in _MARIA:
         nx = (u - mx) / rx
         ny = (v - my) / ry
-        inside = nx * nx + ny * ny
-        if inside < 1.0:
-            shade -= depth * (1.0 - inside)
-    shade = max(0.55, min(1.0, shade))
-    return (int(236 * shade), int(226 * shade), int(198 * shade), 255)
+        if nx * nx + ny * ny < 1.0:
+            return _MARIA_INK
+    return _MOON_FACE
 
 
 def _moon_place(cx, cy, radius, phase):
@@ -288,19 +312,21 @@ def _paint_stars(pixels, size: int, phase: float) -> None:
     cx = cy = (size - 1) / 2.0
     radius = (size - 1) / 2.0
     moon_x, moon_y, moon_radius = _moon_place(cx, cy, radius, phase)
-    for fx, fy in _STARS:
+    for index, (fx, fy) in enumerate(_STARS):
         sx = int(round(fx * (size - 1)))
         sy = int(round(fy * (size - 1)))
         if (sx - moon_x) ** 2 + (sy - moon_y) ** 2 < (moon_radius * 1.05) ** 2:
             continue
-        for dx, dy in ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)):
-            px = sx + dx
-            py = sy + dy
-            if not (0 <= px < size and 0 <= py < size):
-                continue
-            if (px - cx) ** 2 + (py - cy) ** 2 > (radius * 0.90) ** 2:
-                continue
-            pixels[px, py] = _STAR
+        pixels[sx, sy] = _STAR
+        if index in (0, 4):
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                px = sx + dx
+                py = sy + dy
+                if not (0 <= px < size and 0 <= py < size):
+                    continue
+                if (px - cx) ** 2 + (py - cy) ** 2 > (radius * 0.90) ** 2:
+                    continue
+                pixels[px, py] = _STAR
 
 
 def fit_font(text: str, path: str, start_px: int, max_width: float, index: int = 0, max_px: int | None = None):
@@ -362,7 +388,39 @@ def scaled_battery_icon(width: int) -> Image.Image:
                 pixels[x, y] = (0, 0, 0, 255)
             else:
                 pixels[x, y] = (0, 0, 0, 0)
-    return scaled
+    return _battery_shell(scaled)
+
+
+def _battery_shell(icon: Image.Image) -> Image.Image:
+    """Keep the outline and the terminal. Drop the lightning mark inside the body."""
+    pixels = icon.load()
+    width, height = icon.size
+    outside = [[False] * width for _ in range(height)]
+    stack = [
+        (x, y)
+        for y in range(height)
+        for x in range(width)
+        if pixels[x, y][3] < 128 and (x == 0 or y == 0 or x == width - 1 or y == height - 1)
+    ]
+    while stack:
+        x, y = stack.pop()
+        if outside[y][x] or pixels[x, y][3] >= 128:
+            continue
+        outside[y][x] = True
+        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= nx < width and 0 <= ny < height and not outside[ny][nx]:
+                stack.append((nx, ny))
+    for y in range(height):
+        for x in range(width):
+            if pixels[x, y][3] < 128:
+                continue
+            if any(
+                not (0 <= nx < width and 0 <= ny < height) or outside[ny][nx]
+                for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))
+            ):
+                continue
+            pixels[x, y] = (0, 0, 0, 0)
+    return icon
 
 
 def _battery_artwork() -> Image.Image:
@@ -394,43 +452,31 @@ def _charge_under_icon(icon: Image.Image, percent) -> Image.Image:
     fill_right = inset_x + int((body - 2 * inset_x) * clamped / 100.0)
     for y in range(inset_y, height - inset_y):
         for x in range(inset_x, fill_right):
-            if src[x, y][3] < 40 and _inside_outline(src, x, y, body, height):
+            if src[x, y][3] < 40 and _inside_outline(src, x, y, width, height):
                 out[x, y] = color
     return layer
 
 
-def _inside_outline(src, x: int, y: int, body: int, height: int) -> bool:
+def _inside_outline(src, x: int, y: int, width: int, height: int) -> bool:
     left = any(src[i, y][3] > 128 for i in range(x - 1, -1, -1))
-    right = any(src[i, y][3] > 128 for i in range(x + 1, body))
+    right = any(src[i, y][3] > 128 for i in range(x + 1, width))
     up = any(src[x, j][3] > 128 for j in range(y - 1, -1, -1))
     down = any(src[x, j][3] > 128 for j in range(y + 1, height))
     return left and right and up and down
 
 
-def paint_date_hand(image: Image.Image, layout: DialLayout, day: int) -> None:
-    """Slender polished pointer hand indicating the date."""
+def paint_date_highlight(image: Image.Image, layout: DialLayout, day: int) -> None:
+    """Terracotta accent ring centered over the day numeral on the date ring."""
     draw = ImageDraw.Draw(image)
-    angle = clock_angle(day - 1, 31)
-    inner = layout.radius * 0.26
-    outer = math.dist(layout.subdial_center, layout.date_hand_tip(day))
-    start = DialLayout._polar(layout.subdial_center, inner, angle)
-    end = DialLayout._polar(layout.subdial_center, outer, angle)
+    tip = layout.date_hand_tip(day)
+    r = layout.radius * 0.024
+    pen_w = max(1, int(round(layout.radius * 0.007)))
+    ACCENT = (225, 75, 45, 255)  # 0xE14B2D terracotta orange
+    draw.ellipse((tip[0] - r, tip[1] - r, tip[0] + r, tip[1] + r), outline=ACCENT, width=pen_w)
 
-    ux = math.cos(angle)
-    uy = math.sin(angle)
-    px = -uy
-    py = ux
 
-    w = max(1.5, layout.radius * 0.007)
-    draw.line((start[0], start[1], end[0], end[1]), fill=INK, width=max(1, int(w)))
-
-    # Sharp arrow tip
-    tip_len = layout.radius * 0.022
-    tip_w = layout.radius * 0.011
-    tip = end
-    t_left = (end[0] - ux * tip_len + px * tip_w, end[1] - uy * tip_len + py * tip_w)
-    t_right = (end[0] - ux * tip_len - px * tip_w, end[1] - uy * tip_len - py * tip_w)
-    draw.polygon((tip, t_left, t_right), fill=INK)
+def paint_date_hand(image: Image.Image, layout: DialLayout, day: int) -> None:
+    paint_date_highlight(image, layout, day)
 
 
 def _text(image, text, xy, font, fill) -> None:

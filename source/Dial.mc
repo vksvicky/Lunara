@@ -8,18 +8,18 @@ using Toybox.Time.Gregorian;
 using Toybox.WatchUi;
 
 // Fractions match tools/dial_layout.py. Positive Y is down, as a fraction of radius.
-const MONTH_Y = -0.48;
+const MONTH_Y = -0.52;
 const MONTH_HALF_W = 0.27;
 const MONTH_HALF_H = 0.044;
-const WINDOW_Y = -0.36;
+const WINDOW_Y = -0.41;
 const WINDOW_CX = 0.0;
-const SUBDIAL_Y = 0.18;
-const MOON_WELL_R = 0.175;
-const DATE_HAND_R = 0.30;
+const SUBDIAL_Y = 0.335;
+const MOON_WELL_R = 0.195;
+const DATE_HAND_R = 0.2325;
 const BATTERY_X = -0.42;
 const BATTERY_Y = -0.16;
-const BATTERY_TEXT_DY = 0.09;
-const BRAND_Y = -0.26;
+const BATTERY_TEXT_DY = 0.10;
+const BRAND_Y = -0.30;
 const SYNODIC_DAYS = 29.530588853;
 const NEW_MOON_EPOCH = 947182440;
 
@@ -91,14 +91,12 @@ class Dial {
         var moonX = cx - moon.getWidth() / 2.0;
         var moonY = cy + SUBDIAL_Y * radius - moon.getHeight() / 2.0;
         dc.drawBitmap(moonX, moonY, moon);
-        Dial._dateHand(dc, cx, cy + SUBDIAL_Y * radius, radius, day);
+        Dial._dateHighlight(dc, cx, cy + SUBDIAL_Y * radius, radius, day);
     }
 
     static function _label(dc, x, y, font, text) {
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
-        dc.setColor(0x968878, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y + 1, font, text, center);
-        dc.setColor(0x26221E, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, text, center);
     }
 
@@ -122,34 +120,23 @@ class Dial {
         dc.drawBitmap(left, top, icon);
     }
 
-    static function _dateHand(dc, sx, sy, radius, day) {
+    static function _dateHighlight(dc, sx, sy, radius, day) {
         var angle = -Math.PI / 2.0 + ((day - 1) / 31.0) * Math.PI * 2.0;
-        var inner = 0.26 * radius;
-        var outer = DATE_HAND_R * radius;
-        var ux = Math.cos(angle);
-        var uy = Math.sin(angle);
-        var px = -uy;
-        var py = ux;
+        var r = DATE_HAND_R * radius;
+        var hx = sx + r * Math.cos(angle);
+        var hy = sy + r * Math.sin(angle);
+        var hl_r = radius * 0.024;
+        if (hl_r < 3.0) { hl_r = 3.0; }
+        var penW = (radius * 0.007).toNumber();
+        if (penW < 1) { penW = 1; }
+        // Terracotta accent orange
+        dc.setColor(0xE14B2D, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(penW);
+        dc.drawCircle(hx, hy, hl_r);
+    }
 
-        var startX = sx + inner * ux;
-        var startY = sy + inner * uy;
-        var endX   = sx + outer * ux;
-        var endY   = sy + outer * uy;
-
-        var width = (radius * 0.008).toNumber();
-        if (width < 1) { width = 1; }
-
-        dc.setColor(0x1C1A16, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(width);
-        dc.drawLine(startX, startY, endX, endY);
-
-        // Arrow pointer tip
-        var tipLen = radius * 0.022;
-        var tipW   = radius * 0.011;
-        var tip    = [ endX.toNumber(), endY.toNumber() ];
-        var left   = [ (endX - ux * tipLen + px * tipW).toNumber(), (endY - uy * tipLen + py * tipW).toNumber() ];
-        var right  = [ (endX - ux * tipLen - px * tipW).toNumber(), (endY - uy * tipLen - py * tipW).toNumber() ];
-        dc.fillPolygon([ tip, left, right ]);
+    static function _dateHand(dc, sx, sy, radius, day) {
+        _dateHighlight(dc, sx, sy, radius, day);
     }
 
     static function moonPhase(moment as Time.Moment) as Lang.Float {

@@ -13,3 +13,4 @@ test_output/diffs/
 test_output/current/
 test_output/*.txt
 test_output/*.log
+.repolens/

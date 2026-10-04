@@ -34,13 +34,28 @@ if [ ! -f "$KEY_PATH" ]; then
     openssl pkcs8 -topk8 -inform PEM -outform DER -in "$ROOT/developer_key.pem" -out "$KEY_PATH" -nocrypt
 fi
 
+simulator_is_running() {
+    # Match the simulator app only. The SDK language server also has
+    # "connectiq" in its path, and that is not something monkeydo can use.
+    pgrep -f "ConnectIQ.app/Contents/MacOS/simulator" >/dev/null 2>&1
+}
+
 ensure_simulator() {
-    if pgrep -f "connectiq" >/dev/null 2>&1; then
+    if simulator_is_running; then
         return 0
     fi
     echo "Starting Connect IQ Simulator..."
-    "$SDK_PATH/bin/connectiq" >/tmp/lunara-connectiq.log 2>&1 &
-    sleep 8
+    "$SDK_PATH/bin/connectiq" >/tmp/lunara-connectiq.log 2>&1
+    local tries=0
+    while ! simulator_is_running; do
+        tries=$((tries + 1))
+        if [ "$tries" -gt 30 ]; then
+            echo "Connect IQ Simulator did not start. See /tmp/lunara-connectiq.log"
+            return 1
+        fi
+        sleep 1
+    done
+    sleep 3
 }
 
 run_python_units() {

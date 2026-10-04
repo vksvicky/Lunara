@@ -145,6 +145,7 @@ class LanguageCatalogTests(unittest.TestCase):
             hindi = label_font(layout, "hin")
             kana = label_font(layout, "jpn_hira")
             self.assertEqual(latin.getname()[0], "Times New Roman")
+            self.assertEqual(latin.getname()[1], "Regular")
             self.assertEqual(latin.size, expected)
             self.assertEqual(hindi.size, expected)
             self.assertEqual(kana.size, expected)
@@ -236,6 +237,29 @@ class GeneratedFaceTests(unittest.TestCase):
         legend_large = (ROOT / "resources" / "fonts" / "legend_large.fnt").read_text()
         self.assertIn(f"size={LEGEND_SMALL_PX}", legend_small)
         self.assertIn(f"size={LEGEND_LARGE_PX}", legend_large)
+
+    def test_legend_font_can_draw_the_battery_percentage(self):
+        for name in ("legend_small.fnt", "legend_large.fnt"):
+            text = (ROOT / "resources" / "fonts" / name).read_text()
+            present = {int(code) for code in re.findall(r"char id=(\d+)", text)}
+            missing = [char for char in "0123456789%-" if ord(char) not in present]
+            self.assertEqual(missing, [], name)
+
+    def test_glyphs_sit_on_the_line_instead_of_below_it(self):
+        for name in ("face_small.fnt", "face_large.fnt", "legend_small.fnt", "legend_large.fnt"):
+            text = (ROOT / "resources" / "fonts" / name).read_text()
+            size = int(re.search(r"size=(\d+)", text).group(1))
+            line_height = int(re.search(r"lineHeight=(\d+)", text).group(1))
+            self.assertLess(line_height, size * 2, name)
+            for code, height, yoffset in re.findall(
+                r"char id=(\d+)\s+x=\d+\s+y=\d+\s+width=\d+\s+height=(\d+)\s+xoffset=-?\d+\s+yoffset=(-?\d+)",
+                text,
+            ):
+                if code == "32":
+                    continue
+                top = int(yoffset)
+                self.assertLessEqual(top, size, f"{name} char {code}")
+                self.assertLessEqual(top + int(height), line_height, f"{name} char {code}")
 
 
 if __name__ == "__main__":
