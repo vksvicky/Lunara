@@ -32,13 +32,4 @@ class DialPhaseTest {
         Test.assert(distance < 0.02);
         return true;
     }
-
-    (:test)
-    static function testMonthMilestones(logger as Test.Logger) as Lang.Boolean {
-        var moment = new Time.Moment(NEW_MOON_EPOCH);
-        var milestones = Dial.getMonthMilestones(moment);
-        Test.assertEqual(milestones.size(), 4);
-        Test.assert(milestones[0] >= 5 && milestones[0] <= 8);
-        return true;
-    }
 }

@@ -245,6 +245,14 @@ class GeneratedFaceTests(unittest.TestCase):
             missing = [char for char in "0123456789%-" if ord(char) not in present]
             self.assertEqual(missing, [], name)
 
+    def test_legend_font_can_draw_lunar_complication(self):
+        for name in ("legend_small.fnt", "legend_large.fnt"):
+            text = (ROOT / "resources" / "fonts" / name).read_text()
+            present = {int(code) for code in re.findall(r"char id=(\d+)", text)}
+            check_str = "Wax Wan Day 0123456789.% Purnima Amavasya Shukla Krishna Pratipada"
+            missing = [char for char in check_str if ord(char) not in present]
+            self.assertEqual(missing, [], name)
+
     def test_glyphs_sit_on_the_line_instead_of_below_it(self):
         for name in ("face_small.fnt", "face_large.fnt", "legend_small.fnt", "legend_large.fnt"):
             text = (ROOT / "resources" / "fonts" / name).read_text()

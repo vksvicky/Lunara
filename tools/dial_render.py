@@ -319,38 +319,6 @@ def _render_photographic_moon(size: int, phase: float) -> Image.Image:
     return img
 
 
-def paint_timeline_milestones(image: Image.Image, layout: DialLayout, year: int, month: int) -> None:
-    """Astronomical phase milestone markers along the inner track of the date dial."""
-    draw = ImageDraw.Draw(image)
-    from dial_layout import moon_phase
-    phases = [(day, moon_phase(year, month, day)) for day in range(1, 32)]
-    milestones = {
-        'new': min(phases, key=lambda x: min(x[1], 1.0 - x[1]))[0],
-        'first': min(phases, key=lambda x: abs(x[1] - 0.25))[0],
-        'full': min(phases, key=lambda x: abs(x[1] - 0.50))[0],
-        'third': min(phases, key=lambda x: abs(x[1] - 0.75))[0],
-    }
-
-    sub_x, sub_y = layout.subdial_center
-    pip_r = max(2, int(round(layout.radius * 0.012)))
-    track_inner_r = layout.radius * 0.203
-
-    for kind, day in milestones.items():
-        angle = clock_angle(day - 1, 31)
-        px = sub_x + track_inner_r * math.cos(angle)
-        py = sub_y + track_inner_r * math.sin(angle)
-        draw.ellipse((px - pip_r - 0.5, py - pip_r - 0.5, px + pip_r + 0.5, py + pip_r + 0.5), outline=(100, 95, 90, 200), width=1)
-        if kind == 'full':
-            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(255, 252, 240, 255))
-        elif kind == 'new':
-            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(12, 25, 50, 255))
-        elif kind == 'first':
-            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(12, 25, 50, 255))
-            draw.pieslice((px - pip_r, py - pip_r, px + pip_r, py + pip_r), start=-90, end=90, fill=(255, 252, 240, 255))
-        elif kind == 'third':
-            draw.ellipse((px - pip_r, py - pip_r, px + pip_r, py + pip_r), fill=(12, 25, 50, 255))
-            draw.pieslice((px - pip_r, py - pip_r, px + pip_r, py + pip_r), start=90, end=270, fill=(255, 252, 240, 255))
-
 
 
 def fit_font(text: str, path: str, start_px: int, max_width: float, index: int = 0, max_px: int | None = None):

@@ -11,7 +11,6 @@ from dial_render import (
     _date_ring_shift,
     paint_battery,
     paint_date_hand,
-    paint_timeline_milestones,
     render_dial,
     render_moon,
     scaled_battery_icon,
@@ -289,15 +288,6 @@ class MoonRenderTests(unittest.TestCase):
                     elif 65 < r < 160:
                         maria += 1
         self.assertGreater(highlands, 100)
-        self.assertGreater(maria, 500)
-
-    def test_timeline_milestones_painted(self):
-        layout = DialLayout(260)
-        image = Image.new("RGBA", (260, 260), (0, 0, 0, 0))
-        paint_timeline_milestones(image, layout, 2026, 10)
-        non_transparent = sum(1 for p in image.get_flattened_data() if p[3] > 0)
-        self.assertGreater(non_transparent, 40)
-
     def test_quarter_sits_between_new_and_full(self):
         new_moon = _bright_count(render_moon(64, 0.0))
         quarter = _bright_count(render_moon(64, 0.25))

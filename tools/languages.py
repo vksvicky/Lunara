@@ -152,11 +152,16 @@ def legend_shaped_words() -> list[tuple[str, str]]:
 
 
 def legend_charset() -> str:
-    """Characters used under the battery, plus the old side legends.
+    """Characters used under the battery, the lunar complication, and side legends.
 
-    Hindi words are shaped glyphs. The percentage needs digits, a sign, and a dash.
+    Hindi words are shaped glyphs. Includes ASCII alphanumeric and symbols for
+    battery, percentage, illumination, lunar age, and tithi names.
     """
-    chars: list[str] = list("0123456789%-")
+    chars: list[str] = list(
+        "0123456789%-. "
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz"
+    )
     for lang in LANGUAGES:
         if lang.key == "hin":
             continue
