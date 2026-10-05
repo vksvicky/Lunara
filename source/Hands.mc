@@ -74,4 +74,52 @@ class Hands {
         dc.setPenWidth(1);
         dc.drawLine((cx - ux * tail).toNumber(), (cy - uy * tail).toNumber(), (cx + ux * length).toNumber(), (cy + uy * length).toNumber());
     }
+
+    static function drawAOD(dc, hour, minute, cx, cy, radius) {
+        var minuteAngle = (minute / 60.0) * Math.PI * 2.0 - Math.PI / 2.0;
+        var hourAngle = ((hour % 12) / 12.0) * Math.PI * 2.0;
+        hourAngle = hourAngle + (minute / 60.0) * (Math.PI / 6.0) - Math.PI / 2.0;
+
+        // 1. Draw Skeleton Hour Hand (slender luminous outline)
+        Hands._drawDauphineSkeleton(dc, cx, cy, hourAngle, radius * 0.60, radius * 0.11, radius * 0.018);
+
+        // 2. Draw Skeleton Minute Hand (slender luminous outline)
+        Hands._drawDauphineSkeleton(dc, cx, cy, minuteAngle, radius * 0.80, radius * 0.13, radius * 0.012);
+
+        // 3. Center Ring
+        var capR = (radius * 0.032).toNumber();
+        if (capR < 3) {
+            capR = 3;
+        }
+        dc.setColor(0xA0A0A0, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawCircle(cx, cy, capR);
+    }
+
+    static function _drawDauphineSkeleton(dc, cx, cy, angle, length, tail, width) {
+        var ux = Math.cos(angle);
+        var uy = Math.sin(angle);
+        var px = -uy;
+        var py = ux;
+        var sDist = length * 0.28;
+
+        var tip   = [ (cx + ux * length).toNumber(), (cy + uy * length).toNumber() ];
+        var baseL = [ (cx - ux * tail + px * (width * 0.35)).toNumber(), (cy - uy * tail + py * (width * 0.35)).toNumber() ];
+        var baseR = [ (cx - ux * tail - px * (width * 0.35)).toNumber(), (cy - uy * tail - py * (width * 0.35)).toNumber() ];
+        var shdL  = [ (cx + ux * sDist + px * width).toNumber(), (cy + uy * sDist + py * width).toNumber() ];
+        var shdR  = [ (cx + ux * sDist - px * width).toNumber(), (cy + uy * sDist - py * width).toNumber() ];
+
+        // Clean silver luminous outline (1-pixel pen width)
+        dc.setColor(0xD0D0D0, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(tip[0], tip[1], shdL[0], shdL[1]);
+        dc.drawLine(shdL[0], shdL[1], baseL[0], baseL[1]);
+        dc.drawLine(baseL[0], baseL[1], baseR[0], baseR[1]);
+        dc.drawLine(baseR[0], baseR[1], shdR[0], shdR[1]);
+        dc.drawLine(shdR[0], shdR[1], tip[0], tip[1]);
+
+        // Delicate center ridge seam line
+        dc.setColor(0x808080, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine((cx - ux * tail).toNumber(), (cy - uy * tail).toNumber(), tip[0], tip[1]);
+    }
 }
