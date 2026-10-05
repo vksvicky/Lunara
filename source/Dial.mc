@@ -15,7 +15,9 @@ const WINDOW_Y = -0.41;
 const WINDOW_CX = 0.0;
 const SUBDIAL_Y = 0.335;
 const MOON_WELL_R = 0.195;
-const DATE_HAND_R = 0.285;
+const DATE_HAND_R = 0.208;
+const DATE_TIP_R = 0.208;
+const DATE_BASE_R = 0.192;
 const BATTERY_X = -0.42;
 const BATTERY_Y = -0.16;
 const BATTERY_TEXT_DY = 0.10;
@@ -163,14 +165,20 @@ class Dial {
 
     static function _dateHighlight(dc, sx, sy, radius, day) {
         var angle = -Math.PI / 2.0 + ((day - 1) / 31.0) * Math.PI * 2.0;
-        var r = DATE_HAND_R * radius;
-        var px = sx + r * Math.cos(angle);
-        var py = sy + r * Math.sin(angle);
-        var pipR = (radius * 0.014).toNumber();
-        if (pipR < 2) { pipR = 2; }
-        // Terracotta accent orange solid pip pointing to the active date
+        var rTip = DATE_TIP_R * radius;
+        var rBase = DATE_BASE_R * radius;
+        var wAngle = 0.061; // 3.5 degrees in radians
+
+        var tipX = (sx + rTip * Math.cos(angle)).toNumber();
+        var tipY = (sy + rTip * Math.sin(angle)).toNumber();
+        var b1X = (sx + rBase * Math.cos(angle - wAngle)).toNumber();
+        var b1Y = (sy + rBase * Math.sin(angle - wAngle)).toNumber();
+        var b2X = (sx + rBase * Math.cos(angle + wAngle)).toNumber();
+        var b2Y = (sy + rBase * Math.sin(angle + wAngle)).toNumber();
+
+        // Terracotta pointer triangle on inner bezel pointing at the active date
         dc.setColor(0xE14B2D, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(px, py, pipR);
+        dc.fillPolygon([ [tipX, tipY], [b1X, b1Y], [b2X, b2Y] ]);
     }
 
     static function _dateHand(dc, sx, sy, radius, day) {

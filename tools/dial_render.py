@@ -458,12 +458,27 @@ def _inside_outline(src, x: int, y: int, width: int, height: int) -> bool:
 
 
 def paint_date_highlight(image: Image.Image, layout: DialLayout, day: int) -> None:
-    """Terracotta accent pip outside the day numeral on the date ring."""
+    """Terracotta pointer triangle on inner bezel pointing at the date."""
     draw = ImageDraw.Draw(image)
-    tip = layout.date_hand_tip(day)
-    pip_r = max(2, int(round(layout.radius * 0.014)))
+    sub_x, sub_y = layout.subdial_center
+    angle = clock_angle(day - 1, 31)
+
+    r_tip = layout.radius * 0.208
+    r_base = layout.radius * 0.192
+    w_deg = 3.5
+
+    tip_x = sub_x + r_tip * math.cos(angle)
+    tip_y = sub_y + r_tip * math.sin(angle)
+
+    ang1 = angle - math.radians(w_deg)
+    ang2 = angle + math.radians(w_deg)
+    b1_x = sub_x + r_base * math.cos(ang1)
+    b1_y = sub_y + r_base * math.sin(ang1)
+    b2_x = sub_x + r_base * math.cos(ang2)
+    b2_y = sub_y + r_base * math.sin(ang2)
+
     ACCENT = (225, 75, 45, 255)  # 0xE14B2D terracotta orange
-    draw.ellipse((tip[0] - pip_r, tip[1] - pip_r, tip[0] + pip_r, tip[1] + pip_r), fill=ACCENT)
+    draw.polygon([(tip_x, tip_y), (b1_x, b1_y), (b2_x, b2_y)], fill=ACCENT)
 
 
 def paint_date_hand(image: Image.Image, layout: DialLayout, day: int) -> None:
