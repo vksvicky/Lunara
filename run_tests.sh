@@ -112,7 +112,11 @@ run_visual() {
     echo "========================================================"
     echo "LUNARA VISUAL REGRESSION"
     echo "========================================================"
-    python3 "$ROOT/run_ui_tests.py" "$@"
+    if [ $# -eq 0 ]; then
+        python3 "$ROOT/run_ui_tests.py" --full
+    else
+        python3 "$ROOT/run_ui_tests.py" "$@"
+    fi
 }
 
 run_sim() {
