@@ -29,10 +29,11 @@
 
     <setting propertyKey="@Properties.LunarDisplayMode" title="@Strings.LunarDisplayModeTitle">
         <settingConfig type="list">
-            <listEntry value="0">@Strings.LunarDisplayIllumination</listEntry>
-            <listEntry value="1">@Strings.LunarDisplayHinduPanchang</listEntry>
-            <listEntry value="2">@Strings.LunarDisplayLunarAge</listEntry>
-            <listEntry value="3">@Strings.LunarDisplayNone</listEntry>
+            <listEntry value="0">@Strings.LunarDisplayPhaseName</listEntry>
+            <listEntry value="1">@Strings.LunarDisplayIllumination</listEntry>
+            <listEntry value="2">@Strings.LunarDisplayHinduPanchang</listEntry>
+            <listEntry value="3">@Strings.LunarDisplayLunarAge</listEntry>
+            <listEntry value="4">@Strings.LunarDisplayNone</listEntry>
         </settingConfig>
     </setting>
 </settings>

@@ -300,6 +300,17 @@ class MoonRenderTests(unittest.TestCase):
         quarter = list(render_moon(32, 0.25).get_flattened_data())
         self.assertEqual(wrapped, quarter)
 
+    def test_moon_phase_name(self):
+        from dial_layout import moon_phase_name
+        self.assertEqual(moon_phase_name(0.0), "New Moon")
+        self.assertEqual(moon_phase_name(0.12), "Crescent")
+        self.assertEqual(moon_phase_name(0.25), "Quarter")
+        self.assertEqual(moon_phase_name(0.38), "Gibbous")
+        self.assertEqual(moon_phase_name(0.50), "Full Moon")
+        self.assertEqual(moon_phase_name(0.62), "Gibbous")
+        self.assertEqual(moon_phase_name(0.75), "Quarter")
+        self.assertEqual(moon_phase_name(0.88), "Crescent")
+
 
 def _on_hour_index(x: int, y: int, size: int) -> bool:
     center = (size - 1) / 2.0

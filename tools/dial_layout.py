@@ -80,6 +80,26 @@ def moon_phase_from_unix(seconds: float) -> float:
     return (days % SYNODIC_DAYS) / SYNODIC_DAYS
 
 
+def moon_phase_name(phase: float) -> str:
+    """Everyday recognizable lunar phase name."""
+    wrapped = phase % 1.0
+    if wrapped < 0.03 or wrapped >= 0.97:
+        return "New Moon"
+    if wrapped < 0.22:
+        return "Crescent"
+    if wrapped < 0.28:
+        return "Quarter"
+    if wrapped < 0.47:
+        return "Gibbous"
+    if wrapped < 0.53:
+        return "Full Moon"
+    if wrapped < 0.72:
+        return "Gibbous"
+    if wrapped < 0.78:
+        return "Quarter"
+    return "Crescent"
+
+
 def calendar_on(moment: datetime) -> tuple[int, int, int]:
     """Month 1–12, weekday 1–7 (Sunday is 1), day of month.
 

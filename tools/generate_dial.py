@@ -9,7 +9,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from battery_style import battery_color
-from dial_layout import BRAND, DialLayout, calendar_on, moon_phase
+from dial_layout import BRAND, DialLayout, calendar_on, moon_phase, moon_phase_name
 from dial_render import (
     date_hole_diameter,
     label_font,
@@ -170,9 +170,7 @@ def _write_preview() -> None:
     paint_battery(image, layout, 86)
     paint_embossed(image, "86%", layout.battery_text_center, legend_font, INK)
     p = moon_phase(today.year, today.month, today.day)
-    illum = ((1.0 - math.cos(p * math.pi * 2.0)) / 2.0) * 100.0
-    dir_str = "Wax" if 0.0 < p <= 0.5 else "Wan"
-    paint_embossed(image, f"{int(round(illum))}% {dir_str}", layout.lunar_info_center, legend_font, INK)
+    paint_embossed(image, moon_phase_name(p), layout.lunar_info_center, legend_font, INK)
     paint_embossed(image, month_name, layout.month_center, shared, INK)
     paint_embossed(image, english.weekdays[weekday - 1], layout.weekday_window.center, shared, INK)
     paint_embossed(image, BRAND, layout.brand_center, shared, INK)

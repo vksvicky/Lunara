@@ -21,7 +21,8 @@
     <string id="BatteryStyleEvening">Abend</string>
     <string id="BatteryStyleNight">Nacht</string>
     <string id="LunarDisplayModeTitle">Mond-Anzeige</string>
-    <string id="LunarDisplayIllumination">Beleuchtung &amp; Phase (z.B. 41% Wan)</string>
+    <string id="LunarDisplayPhaseName">Mondphase (z.B. Halbmond, Vollmond)</string>
+    <string id="LunarDisplayIllumination">Beleuchtung % (z.B. 37%)</string>
     <string id="LunarDisplayHinduPanchang">Hindu Panchang (Tithi &amp; Paksha)</string>
     <string id="LunarDisplayLunarAge">Mondalter (z.B. Tag 23.4)</string>
     <string id="LunarDisplayNone">Keine (Klassisch)</string>

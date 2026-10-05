@@ -21,7 +21,8 @@
     <string id="BatteryStyleEvening">Evening</string>
     <string id="BatteryStyleNight">Night</string>
     <string id="LunarDisplayModeTitle">Lunar display</string>
-    <string id="LunarDisplayIllumination">Illumination &amp; phase (e.g. 41% Wan)</string>
+    <string id="LunarDisplayPhaseName">Phase name (e.g. Crescent, Full Moon)</string>
+    <string id="LunarDisplayIllumination">Illumination % (e.g. 37%)</string>
     <string id="LunarDisplayHinduPanchang">Hindu Panchang (Tithi &amp; Paksha)</string>
     <string id="LunarDisplayLunarAge">Lunar Age (e.g. Day 23.4)</string>
     <string id="LunarDisplayNone">None (Classic dial)</string>
