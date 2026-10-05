@@ -22,6 +22,8 @@ fenix7xpronowifi.resourcePath = resources-round-280x280;$(base.resourcePath);res
 fenix8solar51mm.resourcePath = resources-round-280x280;$(base.resourcePath);resources-launcher-40
 fenix9prosolar51mm.resourcePath = resources-round-280x280;$(base.resourcePath);resources-launcher-40
 
+venusq2.resourcePath = resources-rectangle-320x360;$(base.resourcePath);resources-launcher-40
+
 venu2s.resourcePath = resources-round-360x360;$(base.resourcePath);resources-launcher-61
 
 epix2pro42mm.resourcePath = resources-round-390x390;$(base.resourcePath);resources-launcher-60

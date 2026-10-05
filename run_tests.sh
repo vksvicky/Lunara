@@ -19,7 +19,7 @@ SDK_PATH="$(ls -td "$SDK_DIR"/connectiq-sdk-mac-* 2>/dev/null | head -n 1)"
 KEY_PATH="$ROOT/developer_key.der"
 OUTPUT_PRG="$ROOT/bin/LunaraTest.prg"
 
-DEVICES=("fenix7s" "fenix7" "fr255" "enduro3" "venu2s" "epix2pro42mm" "venu2" "venu3" "fenix9pro51mm")
+DEVICES=("fenix7s" "fenix7" "fr255" "enduro3" "venusq2" "venu2s" "epix2pro42mm" "venu2" "venu3" "fenix9pro51mm")
 
 MODE="${1:-unit}"
 

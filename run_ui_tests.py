@@ -58,6 +58,7 @@ DEVICES = [
     ("fenix7", 260, "260×260 MIP", "Fenix 7 / Fenix 8 Solar 47mm"),
     ("fr255", 260, "260×260 MIP", "Forerunner 255 / 255 Music"),
     ("enduro3", 280, "280×280 MIP", "Enduro 3 / Fenix 7X"),
+    ("venusq2", (320, 360), "320×360 AMOLED", "Venu Sq 2"),
     ("venu2s", 360, "360×360 AMOLED", "Venu 2S"),
     ("epix2pro42mm", 390, "390×390 AMOLED", "Epix 2 Pro 42mm / Venu 3S"),
     ("venu2", 416, "416×416 AMOLED", "Venu 2 / Epix Gen 2"),
@@ -72,11 +73,12 @@ LANGUAGE_DISTRIBUTION = {
     "fenix7": ["spanish"],
     "fr255": ["german"],
     "enduro3": ["italian"],
-    "venu2s": ["chinese_simplified"],
-    "epix2pro42mm": ["chinese_traditional"],
-    "venu2": ["japanese_kanji"],
-    "venu3": ["japanese_hiragana"],
-    "fenix9pro51mm": ["japanese_katakana"],
+    "venusq2": ["chinese_simplified"],
+    "venu2s": ["chinese_traditional"],
+    "epix2pro42mm": ["japanese_kanji"],
+    "venu2": ["japanese_hiragana"],
+    "venu3": ["japanese_katakana"],
+    "fenix9pro51mm": ["hindi"],
 }
 
 PASSES = [
@@ -138,13 +140,23 @@ def _flatten(image: Image.Image) -> Image.Image:
     return background
 
 
-def render_face(size: int, language_key: str, battery: float, with_hands: bool) -> Image.Image:
+def render_face(size: int | tuple[int, int], language_key: str, battery: float, with_hands: bool) -> Image.Image:
     layout = DialLayout(size)
-    image = _dial(size)
+    if isinstance(size, tuple):
+        w, h = size
+        dial_side = min(w, h)
+        dial_img = _dial(dial_side)
+        image = Image.new("RGBA", (w, h), (0, 0, 0, 255))
+        image.paste(dial_img, (int((w - dial_side) / 2), int((h - dial_side) / 2)), dial_img)
+        well = date_hole_diameter(dial_side)
+        legend_px = LEGEND_LARGE_PX if dial_side >= 390 else LEGEND_SMALL_PX
+    else:
+        image = _dial(size)
+        well = date_hole_diameter(size)
+        legend_px = LEGEND_LARGE_PX if size >= 390 else LEGEND_SMALL_PX
     today = date.today()
     month, weekday, day = calendar_on(datetime(today.year, today.month, today.day))
     phase = moon_phase(today.year, today.month, today.day)
-    well = date_hole_diameter(size)
     moon = render_moon(well, phase)
     origin = (
         int(round(layout.subdial_center[0] - well / 2)),
@@ -153,7 +165,6 @@ def render_face(size: int, language_key: str, battery: float, with_hands: bool) 
     image.alpha_composite(moon, origin)
 
     lang = BY_KEY[language_key]
-    legend_px = LEGEND_LARGE_PX if size >= 390 else LEGEND_SMALL_PX
     month_name = lang.months[month - 1]
     shared = label_font(layout, language_key)
     name = label_font(layout, "eng")

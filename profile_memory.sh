@@ -19,6 +19,7 @@ DEVICES=(
     "fr255:117162"
     "enduro3:117162"
     "venu2s:117162"
+    "venusq2:131072"
     "epix2pro42mm:117162"
     "venu2:117162"
     "venu3:131072"

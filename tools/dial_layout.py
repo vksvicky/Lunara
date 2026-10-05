@@ -123,12 +123,26 @@ def clock_angle(steps: int, count: int) -> float:
 
 
 class DialLayout:
-    def __init__(self, size: int) -> None:
-        if not isinstance(size, int) or isinstance(size, bool) or size <= 0 or size % 2 != 0:
-            raise ValueError(f"dial size must be a positive even integer, got {size!r}")
-        self.size = size
-        self.radius = size / 2.0
-        self.center = (self.radius, self.radius)
+    def __init__(self, size: int | tuple[int, int]) -> None:
+        if isinstance(size, tuple):
+            if len(size) != 2:
+                raise ValueError(f"dial size tuple must be (width, height), got {size!r}")
+            w, h = size
+            if isinstance(w, bool) or isinstance(h, bool) or not isinstance(w, int) or not isinstance(h, int) or w <= 0 or h <= 0 or w % 2 != 0 or h % 2 != 0:
+                raise ValueError(f"dial dimensions must be positive even integers, got {size!r}")
+            self.width = w
+            self.height = h
+            self.size = min(w, h)
+            self.radius = self.size / 2.0
+            self.center = (w / 2.0, h / 2.0)
+        else:
+            if not isinstance(size, int) or isinstance(size, bool) or size <= 0 or size % 2 != 0:
+                raise ValueError(f"dial size must be a positive even integer, got {size!r}")
+            self.width = size
+            self.height = size
+            self.size = size
+            self.radius = size / 2.0
+            self.center = (self.radius, self.radius)
 
     def static_labels(self) -> dict[str, str]:
         return {

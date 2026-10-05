@@ -57,6 +57,7 @@ LAUNCHER_SIZE = {
     "venu2s": 61,
     "venu3": 70,
     "venu3s": 70,
+    "venusq2": 40,
     "fr255": 40,
     "fr255m": 40,
     "fr965": 65,
@@ -79,6 +80,20 @@ def main() -> None:
         scaled_battery_icon(icon_width).save(folder / "battery_icon.png")
         _write_drawables(folder)
         print(f"{size}x{size}  moon {moon_size}px (30 daily phases)")
+
+    rect_folder = ROOT / "resources-rectangle-320x360" / "drawables"
+    rect_folder.mkdir(parents=True, exist_ok=True)
+    dial_320 = render_dial(320)
+    bg_320x360 = Image.new("RGBA", (320, 360), (0, 0, 0, 255))
+    bg_320x360.paste(dial_320, (0, 20), dial_320)
+    bg_320x360.save(rect_folder / "dial_bg.png")
+    moon_size = date_hole_diameter(320)
+    for index in range(30):
+        render_moon(moon_size, index / 30.0).save(rect_folder / f"moon_{index}.png")
+    icon_width = max(16, int(round((320 / 2) * 0.24)))
+    scaled_battery_icon(icon_width).save(rect_folder / "battery_icon.png")
+    _write_drawables(rect_folder)
+    print(f"320x360 (venusq2) moon {moon_size}px (30 daily phases)")
 
     _write_launcher()
     _wire_launcher_paths()
@@ -128,10 +143,10 @@ def _wire_launcher_paths() -> None:
     lines = []
     for line in jungle.read_text().splitlines():
         device = line.split(".", 1)[0]
-        if device in LAUNCHER_SIZE and ".resourcePath = resources-round-" in line:
-            round_folder = line.split("= ", 1)[1].split(";", 1)[0]
+        if device in LAUNCHER_SIZE and (".resourcePath = resources-round-" in line or ".resourcePath = resources-rectangle-" in line):
+            res_folder = line.split("= ", 1)[1].split(";", 1)[0]
             size = LAUNCHER_SIZE[device]
-            line = f"{device}.resourcePath = {round_folder};$(base.resourcePath);resources-launcher-{size}"
+            line = f"{device}.resourcePath = {res_folder};$(base.resourcePath);resources-launcher-{size}"
         lines.append(line)
     jungle.write_text("\n".join(lines) + "\n")
 
