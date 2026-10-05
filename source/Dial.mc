@@ -15,7 +15,7 @@ const WINDOW_Y = -0.41;
 const WINDOW_CX = 0.0;
 const SUBDIAL_Y = 0.335;
 const MOON_WELL_R = 0.195;
-const DATE_HAND_R = 0.2325;
+const DATE_HAND_R = 0.285;
 const BATTERY_X = -0.42;
 const BATTERY_Y = -0.16;
 const BATTERY_TEXT_DY = 0.10;
@@ -33,8 +33,6 @@ class Dial {
     private var _face as FaceText;
     private var _fontSmall;
     private var _fontLarge;
-    private var _legendSmall;
-    private var _legendLarge;
 
     function initialize() {
         _background = WatchUi.loadResource(Rez.Drawables.dial_bg);
@@ -74,8 +72,6 @@ class Dial {
         _face = new FaceText();
         _fontSmall = WatchUi.loadResource(Rez.Fonts.FaceSmall);
         _fontLarge = WatchUi.loadResource(Rez.Fonts.FaceLarge);
-        _legendSmall = WatchUi.loadResource(Rez.Fonts.FaceLegendSmall);
-        _legendLarge = WatchUi.loadResource(Rez.Fonts.FaceLegendLarge);
     }
 
     function draw(dc, moment) {
@@ -96,8 +92,16 @@ class Dial {
         var day = info.day as Lang.Number;
         var ink = 0x26221E;
         var language = FaceText.resolve(Application.Properties.getValue("Language"), System.getDeviceSettings().systemLanguage);
-        var font = width >= 390 ? _fontLarge : _fontSmall;
-        var legend = width >= 390 ? _legendLarge : _legendSmall;
+        var font;
+        if (language == 4 || language == 5 || language == 6 || language == 7 || language == 8 || language == 9) {
+            // CJK and Hindi use custom bitmap font atlas for ideographs & shaped Devanagari
+            font = width >= 390 ? _fontLarge : _fontSmall;
+        } else {
+            // Latin languages use Garmin native crisp, hand-hinted system font
+            font = width >= 390 ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
+        }
+        var brandFont = width >= 390 ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
+        var legend = width >= 390 ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
         var batteryStyle = Application.Properties.getValue("BatteryStyle");
         var hour = info.hour as Lang.Number;
@@ -105,7 +109,7 @@ class Dial {
 
         Dial._label(dc, cx, cy + MONTH_Y * radius, font, _face.month(language, month));
         Dial._label(dc, cx + WINDOW_CX * radius, cy + WINDOW_Y * radius, font, _face.weekday(language, weekday));
-        Dial._label(dc, cx, cy + BRAND_Y * radius, font, "LUNARA");
+        Dial._label(dc, cx, cy + BRAND_Y * radius, brandFont, "LUNARA");
 
         Dial._battery(dc, cx + BATTERY_X * radius, cy + BATTERY_Y * radius, level, batteryStyle, hour, _batteryIcon);
         // Percentage text in classic dial ink for high-end look
@@ -160,16 +164,13 @@ class Dial {
     static function _dateHighlight(dc, sx, sy, radius, day) {
         var angle = -Math.PI / 2.0 + ((day - 1) / 31.0) * Math.PI * 2.0;
         var r = DATE_HAND_R * radius;
-        var hx = sx + r * Math.cos(angle);
-        var hy = sy + r * Math.sin(angle);
-        var hl_r = radius * 0.024;
-        if (hl_r < 3.0) { hl_r = 3.0; }
-        var penW = (radius * 0.007).toNumber();
-        if (penW < 1) { penW = 1; }
-        // Terracotta accent orange
+        var px = sx + r * Math.cos(angle);
+        var py = sy + r * Math.sin(angle);
+        var pipR = (radius * 0.014).toNumber();
+        if (pipR < 2) { pipR = 2; }
+        // Terracotta accent orange solid pip pointing to the active date
         dc.setColor(0xE14B2D, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(penW);
-        dc.drawCircle(hx, hy, hl_r);
+        dc.fillCircle(px, py, pipR);
     }
 
     static function _dateHand(dc, sx, sy, radius, day) {

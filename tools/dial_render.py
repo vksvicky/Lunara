@@ -458,13 +458,12 @@ def _inside_outline(src, x: int, y: int, width: int, height: int) -> bool:
 
 
 def paint_date_highlight(image: Image.Image, layout: DialLayout, day: int) -> None:
-    """Terracotta accent ring centered over the day numeral on the date ring."""
+    """Terracotta accent pip outside the day numeral on the date ring."""
     draw = ImageDraw.Draw(image)
     tip = layout.date_hand_tip(day)
-    r = layout.radius * 0.024
-    pen_w = max(1, int(round(layout.radius * 0.007)))
+    pip_r = max(2, int(round(layout.radius * 0.014)))
     ACCENT = (225, 75, 45, 255)  # 0xE14B2D terracotta orange
-    draw.ellipse((tip[0] - r, tip[1] - r, tip[0] + r, tip[1] + r), outline=ACCENT, width=pen_w)
+    draw.ellipse((tip[0] - pip_r, tip[1] - pip_r, tip[0] + pip_r, tip[1] + pip_r), fill=ACCENT)
 
 
 def paint_date_hand(image: Image.Image, layout: DialLayout, day: int) -> None:

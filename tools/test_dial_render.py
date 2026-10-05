@@ -204,9 +204,8 @@ class DialRenderTests(unittest.TestCase):
         image = Image.new("RGBA", (260, 260), (0, 0, 0, 0))
         paint_date_hand(image, layout, 1)
         tip = layout.date_hand_tip(1)
-        r = int(round(layout.radius * 0.024))
-        # Check that accent color pixels exist on the ring around day 1
-        x, y = int(round(tip[0])), int(round(tip[1] - r))
+        # Check that accent color pixels exist for the pip at day 1
+        x, y = int(round(tip[0])), int(round(tip[1]))
         pixel = image.getpixel((x, y))
         self.assertGreater(pixel[3], 200)
         # Terracotta orange (225, 75, 45)
