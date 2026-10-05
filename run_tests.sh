@@ -124,6 +124,10 @@ run_sim() {
     mkdir -p "$ROOT/bin"
     echo "Compiling Lunara for $device..."
     "$SDK_PATH/bin/monkeyc" -f "$ROOT/monkey.jungle" -o "$ROOT/bin/Lunara.prg" -d "$device" -y "$KEY_PATH" -w
+    local sim_settings_dir="$TMPDIR/com.garmin.connectiq/GARMIN/APPS/SETTINGS"
+    mkdir -p "$sim_settings_dir"
+    cp "$ROOT/bin/Lunara-settings.json" "$sim_settings_dir/LUNARA.SET" 2>/dev/null || true
+    cp "$ROOT/bin/Lunara-settings.json" "$sim_settings_dir/LUNARA.JSON" 2>/dev/null || true
     ensure_simulator
     echo "Launching $device..."
     "$SDK_PATH/bin/monkeydo" "$ROOT/bin/Lunara.prg" "$device"

@@ -16,7 +16,16 @@ class LunaraApp extends Application.AppBase {
         return [ new LunaraView() ];
     }
 
+    function getSettingsView() {
+        if (WatchUi has :WatchFaceDelegate) {
+            var view = new LunaraSettingsView();
+            return [ view, new LunaraSettingsDelegate(view) ];
+        }
+        return null;
+    }
+
     function onSettingsChanged() {
         WatchUi.requestUpdate();
     }
 }
+
