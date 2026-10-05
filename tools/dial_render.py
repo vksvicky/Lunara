@@ -19,6 +19,8 @@ INK = (28, 26, 22, 255)
 # A 64-color sky blue. Near-black navy quantizes to black on these watches.
 SKY = (0, 85, 170, 255)
 
+_AVENIR = "/System/Library/Fonts/Avenir.ttc"
+_HIRAGINO = "/System/Library/Fonts/Hiragino Sans GB.ttc"
 _TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
 _SONG = "/System/Library/Fonts/Supplemental/Songti.ttc"
 
@@ -203,15 +205,13 @@ def open_label_limit(layout: DialLayout) -> float:
 
 
 def label_font(layout: DialLayout, language_key: str = "eng") -> ImageFont.FreeTypeFont:
-    """One size for the month, the weekday, and LUNARA. Latin is a dial serif."""
+    """One size for the month, the weekday, and LUNARA. Latin is Avenir."""
     pixels = face_px(layout.size)
     if language_key == "hin":
         return ImageFont.truetype(_DEVA, pixels, index=1)
-    if language_key == "zht":
-        return ImageFont.truetype(_SONG, pixels, index=7)
-    if language_key in ("zhs", "jpn_kanji", "jpn_hira", "jpn_kata"):
-        return ImageFont.truetype(_SONG, pixels, index=6)
-    return ImageFont.truetype(_TIMES, pixels)
+    if language_key in ("zht", "zhs", "jpn_kanji", "jpn_hira", "jpn_kata"):
+        return ImageFont.truetype(_HIRAGINO, pixels)
+    return ImageFont.truetype(_AVENIR, pixels, index=8)
 
 
 def brand_half_width(layout: DialLayout) -> float:

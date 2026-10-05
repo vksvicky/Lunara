@@ -24,17 +24,16 @@ from languages import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-SANS = "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
-TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
-SONG = "/System/Library/Fonts/Supplemental/Songti.ttc"
+AVENIR = "/System/Library/Fonts/Avenir.ttc"
+HIRAGINO = "/System/Library/Fonts/Hiragino Sans GB.ttc"
 DEVA = "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc"
 
 
 def main() -> None:
     font_dir = ROOT / "resources" / "fonts"
     font_dir.mkdir(parents=True, exist_ok=True)
-    _write_face_font(FACE_SMALL_PX, font_dir / "face_small.fnt", font_dir / "face_small_0.png", serif=True)
-    _write_face_font(FACE_LARGE_PX, font_dir / "face_large.fnt", font_dir / "face_large_0.png", serif=True)
+    _write_face_font(FACE_SMALL_PX, font_dir / "face_small.fnt", font_dir / "face_small_0.png")
+    _write_face_font(FACE_LARGE_PX, font_dir / "face_large.fnt", font_dir / "face_large_0.png")
     _write_face_font(
         LEGEND_SMALL_PX,
         font_dir / "legend_small.fnt",
@@ -69,10 +68,9 @@ def _write_face_font(
     png_path: Path,
     charset: str | None = None,
     words: list[tuple[str, str]] | None = None,
-    serif: bool = False,
 ) -> None:
-    latin = ImageFont.truetype(TIMES if serif else SANS, size)
-    cjk = ImageFont.truetype(SONG, size, index=6) if serif else latin
+    latin = ImageFont.truetype(AVENIR, size, index=8)
+    cjk = ImageFont.truetype(HIRAGINO, size)
     deva = ImageFont.truetype(DEVA, size, index=1)
     ascent, _descent = latin.getmetrics()
     glyphs = [_measure(latin, " ", size, space=True)]
@@ -148,14 +146,18 @@ def _measure(font: ImageFont.FreeTypeFont, text: str, size: int, code: int | Non
     ink = canvas.getbbox()
     if ink is None:
         image = canvas.crop((0, 0, 1, 1))
+        xoff = left
+        yoff = top
     else:
         image = canvas.crop(ink)
+        xoff = left + ink[0] - 2
+        yoff = top + ink[1] - 2
     return {
         "id": code,
         "width": image.width,
         "height": image.height,
-        "xoffset": left,
-        "yoffset": top,
+        "xoffset": xoff,
+        "yoffset": yoff,
         "advance": advance,
         "image": image,
         "atlas_x": 0,
@@ -164,9 +166,10 @@ def _measure(font: ImageFont.FreeTypeFont, text: str, size: int, code: int | Non
 
 
 def _save_coverage(image: Image.Image, path: Path) -> None:
-    """White glyphs. Coverage stays in the alpha so a regular serif keeps its shape."""
+    """White glyphs. Coverage stays in the alpha so the font renders crisp on MIP and AMOLED."""
+    alpha = image.point(lambda p: 0 if p == 0 else min(255, int(p * 1.15 + 10)))
     rgba = Image.new("RGBA", image.size, (255, 255, 255, 0))
-    rgba.putalpha(image)
+    rgba.putalpha(alpha)
     rgba.save(path, format="PNG")
 
 

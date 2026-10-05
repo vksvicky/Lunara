@@ -63,6 +63,7 @@ LAUNCHER_SIZE = {
 }
 ROOT = Path(__file__).resolve().parents[1]
 INK = (28, 26, 22, 255)
+_AVENIR = "/System/Library/Fonts/Avenir.ttc"
 _TIMES = "/System/Library/Fonts/Supplemental/Times New Roman.ttf"
 
 
@@ -165,7 +166,7 @@ def _write_preview() -> None:
     radius = layout.radius
     month_name = english.months[month - 1]
     shared = label_font(layout)
-    legend_font = ImageFont.truetype(_TIMES, max(12, int(radius * 0.075)))
+    legend_font = ImageFont.truetype(_AVENIR, max(12, int(radius * 0.075)), index=8)
     paint_date_hand(image, layout, day)
     paint_battery(image, layout, 86)
     paint_embossed(image, "86%", layout.battery_text_center, legend_font, INK)

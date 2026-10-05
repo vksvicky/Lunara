@@ -32,17 +32,19 @@ _SUBDIAL_CENTER_Y = 0.335
 _DATE_RING_RADIUS = 0.2325
 _MOON_WELL_RADIUS = 0.195
 _DATE_HAND_RADIUS = 0.208
-_MONTH_Y = -0.52
+_MONTH_Y = -0.55
 _MONTH_HALF_W = 0.27
 _MONTH_HALF_H = 0.044
-_WINDOW_Y = -0.41
+_WINDOW_Y = -0.39
 _WINDOW_HALF_W = 0.145
 _WINDOW_HALF_H = 0.050
 _WINDOW_CX = 0.0
-_BRAND_Y = -0.30
+_BRAND_Y = -0.23
 _BATTERY_X = -0.42
 _BATTERY_Y = -0.16
 _BATTERY_TEXT_DY = 0.10
+_LUNAR_INFO_X = 0.38
+_LUNAR_INFO_Y = -0.10
 
 
 @dataclass(frozen=True)
@@ -167,8 +169,7 @@ class DialLayout:
 
     @property
     def lunar_info_center(self) -> tuple[float, float]:
-        x, y = self._at(-_BATTERY_X, _BATTERY_Y)
-        return (x, y + _BATTERY_TEXT_DY * self.radius)
+        return self._at(_LUNAR_INFO_X, _LUNAR_INFO_Y)
 
     @property
     def weekday_window(self) -> Window:

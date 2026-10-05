@@ -8,10 +8,10 @@ using Toybox.Time.Gregorian;
 using Toybox.WatchUi;
 
 // Fractions match tools/dial_layout.py. Positive Y is down, as a fraction of radius.
-const MONTH_Y = -0.52;
+const MONTH_Y = -0.55;
 const MONTH_HALF_W = 0.27;
 const MONTH_HALF_H = 0.044;
-const WINDOW_Y = -0.41;
+const WINDOW_Y = -0.39;
 const WINDOW_CX = 0.0;
 const SUBDIAL_Y = 0.335;
 const MOON_WELL_R = 0.195;
@@ -21,8 +21,9 @@ const DATE_BASE_R = 0.192;
 const BATTERY_X = -0.42;
 const BATTERY_Y = -0.16;
 const BATTERY_TEXT_DY = 0.10;
-const LUNAR_INFO_X = 0.42;
-const BRAND_Y = -0.30;
+const LUNAR_INFO_X = 0.38;
+const LUNAR_INFO_Y = -0.10;
+const BRAND_Y = -0.23;
 const SYNODIC_DAYS = 29.530588853;
 const NEW_MOON_EPOCH = 947182440;
 
@@ -35,6 +36,8 @@ class Dial {
     private var _face as FaceText;
     private var _fontSmall;
     private var _fontLarge;
+    private var _legendSmall;
+    private var _legendLarge;
 
     function initialize() {
         _background = WatchUi.loadResource(Rez.Drawables.dial_bg);
@@ -74,6 +77,8 @@ class Dial {
         _face = new FaceText();
         _fontSmall = WatchUi.loadResource(Rez.Fonts.FaceSmall);
         _fontLarge = WatchUi.loadResource(Rez.Fonts.FaceLarge);
+        _legendSmall = WatchUi.loadResource(Rez.Fonts.FaceLegendSmall);
+        _legendLarge = WatchUi.loadResource(Rez.Fonts.FaceLegendLarge);
     }
 
     function draw(dc, moment) {
@@ -94,16 +99,9 @@ class Dial {
         var day = info.day as Lang.Number;
         var ink = 0x26221E;
         var language = FaceText.resolve(Application.Properties.getValue("Language"), System.getDeviceSettings().systemLanguage);
-        var font;
-        if (language == 4 || language == 5 || language == 6 || language == 7 || language == 8 || language == 9) {
-            // CJK and Hindi use custom bitmap font atlas for ideographs & shaped Devanagari
-            font = width >= 390 ? _fontLarge : _fontSmall;
-        } else {
-            // Latin languages use Garmin native crisp, hand-hinted system font
-            font = width >= 390 ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
-        }
-        var brandFont = width >= 390 ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
-        var legend = width >= 390 ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
+        var font = width >= 390 ? _fontLarge : _fontSmall;
+        var brandFont = font;
+        var legend = width >= 390 ? _legendLarge : _legendSmall;
         var center = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
         var batteryStyle = Application.Properties.getValue("BatteryStyle");
         var hour = info.hour as Lang.Number;
@@ -123,7 +121,7 @@ class Dial {
         var lunarStr = LunarComplication.text(phase, lunarMode);
         if (lunarStr.length() > 0) {
             dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx + LUNAR_INFO_X * radius, cy + (BATTERY_Y + BATTERY_TEXT_DY) * radius, legend, lunarStr, center);
+            dc.drawText(cx + LUNAR_INFO_X * radius, cy + LUNAR_INFO_Y * radius, legend, lunarStr, center);
         }
 
         var moonIdx = Dial.moonIndex(phase);
