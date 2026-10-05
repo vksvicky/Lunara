@@ -48,12 +48,12 @@ class LunaraSettingsView extends WatchUi.View {
                 "English",
                 "Français",
                 "Español",
-                "简体中文",
-                "繁體中文",
-                "日本語（漢字）",
-                "日本語（ひらがな）",
-                "日本語（カタカナ）",
-                "हिन्दी",
+                "Chinese (Simp)",
+                "Chinese (Trad)",
+                "Japanese (Kanji)",
+                "Japanese (Hira)",
+                "Japanese (Kata)",
+                "Hindi",
                 "Italiano",
                 "Deutsch"
             ];
