@@ -158,9 +158,10 @@ class LunaraSettingsView extends WatchUi.View {
             }
         }
 
-        // 9. Instruction hint
+        // 9. Instruction hint (placed safely above curved bezel with balanced margin)
+        var footerY = pyDown + arrowH + uniformGap;
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h - (22 * scale).toNumber(), fontHeader, "SELECT: Change  •  BACK: Exit", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, footerY, fontHeader, "SELECT: Change  •  BACK: Exit", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function getPropVal(key, defaultVal) {
