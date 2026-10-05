@@ -20,4 +20,9 @@
     <string id="BatteryStyleDay">白天</string>
     <string id="BatteryStyleEvening">傍晚</string>
     <string id="BatteryStyleNight">夜晚</string>
+    <string id="LunarDisplayModeTitle">月相顯示</string>
+    <string id="LunarDisplayIllumination">照度與月相 (例如 41% 虧月)</string>
+    <string id="LunarDisplayHinduPanchang">印度曆 (Tithi &amp; Paksha)</string>
+    <string id="LunarDisplayLunarAge">月齡 (例如 23.4天)</string>
+    <string id="LunarDisplayNone">無 (經典錶盤)</string>
 </strings>

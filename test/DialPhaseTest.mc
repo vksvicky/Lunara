@@ -8,9 +8,19 @@ class DialPhaseTest {
     (:test)
     static function testMoonIndexBins(logger as Test.Logger) as Lang.Boolean {
         Test.assertEqual(Dial.moonIndex(0.0), 0);
-        Test.assertEqual(Dial.moonIndex(0.5), 4);
+        Test.assertEqual(Dial.moonIndex(0.5), 15);
         Test.assertEqual(Dial.moonIndex(0.999), 0);
-        Test.assertEqual(Dial.moonIndex(1.0625), 1);
+        Test.assertEqual(Dial.moonIndex(1.0333), 1);
+        return true;
+    }
+
+    (:test)
+    static function testLunarComplication(logger as Test.Logger) as Lang.Boolean {
+        Test.assertEqual(LunarComplication.text(0.48, LunarComplication.MODE_HINDU_PANCHANG), "Purnima");
+        Test.assertEqual(LunarComplication.text(0.50, LunarComplication.MODE_HINDU_PANCHANG), "K. Pratipada");
+        Test.assertEqual(LunarComplication.text(0.50, LunarComplication.MODE_ILLUMINATION), "100% Wax");
+        Test.assertEqual(LunarComplication.text(0.75, LunarComplication.MODE_ILLUMINATION), "50% Wan");
+        Test.assertEqual(LunarComplication.text(0.50, LunarComplication.MODE_NONE), "");
         return true;
     }
 

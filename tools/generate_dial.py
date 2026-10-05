@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from datetime import date, datetime
 from pathlib import Path
 
@@ -72,12 +73,12 @@ def main() -> None:
         folder.mkdir(parents=True, exist_ok=True)
         render_dial(size).save(folder / "dial_bg.png")
         moon_size = date_hole_diameter(size)
-        for index in range(8):
-            render_moon(moon_size, index / 8.0).save(folder / f"moon_{index}.png")
+        for index in range(30):
+            render_moon(moon_size, index / 30.0).save(folder / f"moon_{index}.png")
         icon_width = max(16, int(round((size / 2) * 0.24)))
         scaled_battery_icon(icon_width).save(folder / "battery_icon.png")
         _write_drawables(folder)
-        print(f"{size}x{size}  moon {moon_size}px")
+        print(f"{size}x{size}  moon {moon_size}px (30 daily phases)")
 
     _write_launcher()
     _wire_launcher_paths()
@@ -91,7 +92,7 @@ def _write_drawables(folder: Path) -> None:
         '    <bitmap id="dial_bg" filename="dial_bg.png" dithering="none" />',
         '    <bitmap id="battery_icon" filename="battery_icon.png" dithering="none" />',
     ]
-    for index in range(8):
+    for index in range(30):
         lines.append(
             f'    <bitmap id="moon_{index}" filename="moon_{index}.png" dithering="none" />'
         )
@@ -170,6 +171,10 @@ def _write_preview() -> None:
     paint_date_hand(image, layout, day)
     paint_battery(image, layout, 86)
     paint_embossed(image, "86%", layout.battery_text_center, legend_font, INK)
+    p = moon_phase(today.year, today.month, today.day)
+    illum = ((1.0 - math.cos(p * math.pi * 2.0)) / 2.0) * 100.0
+    dir_str = "Wax" if 0.0 < p <= 0.5 else "Wan"
+    paint_embossed(image, f"{int(round(illum))}% {dir_str}", layout.lunar_info_center, legend_font, INK)
     paint_embossed(image, month_name, layout.month_center, shared, INK)
     paint_embossed(image, english.weekdays[weekday - 1], layout.weekday_window.center, shared, INK)
     paint_embossed(image, BRAND, layout.brand_center, shared, INK)

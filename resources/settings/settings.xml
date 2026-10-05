@@ -26,4 +26,13 @@
             <listEntry value="5">@Strings.BatteryStyleNight</listEntry>
         </settingConfig>
     </setting>
+
+    <setting propertyKey="@Properties.LunarDisplayMode" title="@Strings.LunarDisplayModeTitle">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.LunarDisplayIllumination</listEntry>
+            <listEntry value="1">@Strings.LunarDisplayHinduPanchang</listEntry>
+            <listEntry value="2">@Strings.LunarDisplayLunarAge</listEntry>
+            <listEntry value="3">@Strings.LunarDisplayNone</listEntry>
+        </settingConfig>
+    </setting>
 </settings>

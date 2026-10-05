@@ -20,4 +20,9 @@
     <string id="BatteryStyleDay">昼</string>
     <string id="BatteryStyleEvening">夕方</string>
     <string id="BatteryStyleNight">夜</string>
+    <string id="LunarDisplayModeTitle">月齢表示</string>
+    <string id="LunarDisplayIllumination">輝度と満ち欠け (例: 41% 欠け)</string>
+    <string id="LunarDisplayHinduPanchang">ヒンドゥー暦 (ティティ &amp; パクシャ)</string>
+    <string id="LunarDisplayLunarAge">月齢 (例: 23.4日)</string>
+    <string id="LunarDisplayNone">なし (クラシック)</string>
 </strings>

@@ -20,4 +20,9 @@
     <string id="BatteryStyleDay">Tag</string>
     <string id="BatteryStyleEvening">Abend</string>
     <string id="BatteryStyleNight">Nacht</string>
+    <string id="LunarDisplayModeTitle">Mond-Anzeige</string>
+    <string id="LunarDisplayIllumination">Beleuchtung &amp; Phase (z.B. 41% Wan)</string>
+    <string id="LunarDisplayHinduPanchang">Hindu Panchang (Tithi &amp; Paksha)</string>
+    <string id="LunarDisplayLunarAge">Mondalter (z.B. Tag 23.4)</string>
+    <string id="LunarDisplayNone">Keine (Klassisch)</string>
 </strings>

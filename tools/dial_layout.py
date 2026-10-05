@@ -146,6 +146,11 @@ class DialLayout:
         return (x, y + _BATTERY_TEXT_DY * self.radius)
 
     @property
+    def lunar_info_center(self) -> tuple[float, float]:
+        x, y = self._at(-_BATTERY_X, _BATTERY_Y)
+        return (x, y + _BATTERY_TEXT_DY * self.radius)
+
+    @property
     def weekday_window(self) -> Window:
         return self._window(-_WINDOW_CX)
 

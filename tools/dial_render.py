@@ -284,26 +284,29 @@ def _render_photographic_moon(size: int, phase: float) -> Image.Image:
                 continue
 
             edge = math.sqrt(max(0.0, 1.0 - v * v))
-            # Northern hemisphere: waxing (0 < phase <= 0.5) lights right (u > sweep * edge)
-            # waning (0.5 < phase < 1.0) lights left (u < -sweep * edge)
-            lit = (u > sweep * edge) if phase <= 0.5 else (u < -sweep * edge)
+            # Northern hemisphere: waxing (0 < phase <= 0.5) lights right, waning lights left
+            term_u = sweep * edge if phase <= 0.5 else -sweep * edge
+            dist = (u - term_u) if phase <= 0.5 else (term_u - u)
+            penumbra = 2.0 / m_rad
+            t = max(0.0, min(1.0, (dist / penumbra) + 0.5))
+            t = t * t * (3.0 - 2.0 * t)
 
             px = ox + mx
             py = oy + my
             if 0 <= px < size and 0 <= py < size:
                 if (px - cx) ** 2 + (py - cy) ** 2 <= radius2:
-                    if lit:
-                        # Crisp bright photographic moon
-                        r = min(255, int(src[0] * 1.12 + 10))
-                        g = min(255, int(src[1] * 1.10 + 10))
-                        b = min(255, int(src[2] * 1.08 + 10))
-                        pixels[px, py] = (r, g, b, 255)
-                    else:
-                        # Subtle realistic earthshine on dark side
-                        er = int(src[0] * 0.10)
-                        eg = int(src[1] * 0.12)
-                        eb = int(src[2] * 0.22)
-                        pixels[px, py] = (er, eg, eb, 255)
+                    # Crisp bright sunlit lunar surface
+                    lr = min(255, int(src[0] * 1.15 + 10))
+                    lg = min(255, int(src[1] * 1.12 + 10))
+                    lb = min(255, int(src[2] * 1.10 + 10))
+                    # Lighter, luminous earthshine showing craters and maria on unlit side
+                    er = int(src[0] * 0.38 + 25)
+                    eg = int(src[1] * 0.40 + 28)
+                    eb = int(src[2] * 0.48 + 38)
+                    r = int(round(er + (lr - er) * t))
+                    g = int(round(eg + (lg - eg) * t))
+                    b = int(round(eb + (lb - eb) * t))
+                    pixels[px, py] = (r, g, b, 255)
 
     # Subtle star field in sky rim
     for fx, fy in _STARS:

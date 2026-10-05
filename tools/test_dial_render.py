@@ -23,7 +23,7 @@ def _is_bright(pixel) -> bool:
     red, green, blue, alpha = pixel
     if alpha <= 200:
         return False
-    return red > 65 and green > 65 and (red + green) > 140 and abs(red - blue) < 30
+    return red > 110 and green > 110 and (red + green) > 240 and abs(red - blue) < 30
 
 
 def _bright_count(image) -> int:
@@ -235,7 +235,7 @@ class MoonRenderTests(unittest.TestCase):
         full_at, full_count = _bright_centroid(full)
         _new_at, new_count = _bright_centroid(new)
         self.assertGreater(full_count, 1000)
-        self.assertEqual(new_count, 0)
+        self.assertLess(new_count, 20)
         middle = (full.width - 1) / 2.0
         self.assertAlmostEqual(full_at[0], middle, delta=full.width * 0.08)
         self.assertAlmostEqual(full_at[1], middle, delta=full.height * 0.08)
@@ -259,7 +259,9 @@ class MoonRenderTests(unittest.TestCase):
             self.assertGreater(blue, red, point)
         c_red, c_green, c_blue, c_alpha = image.getpixel((48, 48))
         self.assertEqual(c_alpha, 255)
-        self.assertLess(c_red, 30)
+        # Luminous earthshine is visible (not pitch black) and clearly darker than sunlit face
+        self.assertGreater(c_red, 40)
+        self.assertLess(c_red, 110)
         stars = _star_pixels(image)
         self.assertGreater(stars, 4)
         self.assertLess(stars, 90)
@@ -269,7 +271,7 @@ class MoonRenderTests(unittest.TestCase):
         image = render_moon(96, 0.25)
         red, green, blue, alpha = image.getpixel((20, 48))
         self.assertEqual(alpha, 255)
-        self.assertLess(red, 50)
+        self.assertLess(red, 110)
 
     def test_full_moon_is_white_with_gray_maria(self):
         image = render_moon(96, 0.5)
