@@ -30,13 +30,17 @@ class LunarComplication {
     ];
 
     static function text(phase as Lang.Float, mode as Lang.Number) as Lang.String {
+        return textForLanguage(phase, mode, 1, null);
+    }
+
+    static function textForLanguage(phase as Lang.Float, mode as Lang.Number, language as Lang.Number, face as FaceText?) as Lang.String {
         var wrapped = phase - Math.floor(phase);
         if (wrapped < 0.0) {
             wrapped = wrapped + 1.0;
         }
 
         if (mode == MODE_PHASE_NAME) {
-            return phaseName(wrapped);
+            return phaseNameForLanguage(wrapped, language, face);
         } else if (mode == MODE_ILLUMINATION) {
             var illum = ((1.0 - Math.cos(wrapped * Math.PI * 2.0)) / 2.0) * 100.0;
             var pct = Math.round(illum).toNumber();
@@ -52,24 +56,38 @@ class LunarComplication {
         return "";
     }
 
-    static function phaseName(wrapped as Lang.Float) as Lang.String {
+    static function phaseIndex(wrapped as Lang.Float) as Lang.Number {
         if (wrapped < 0.03 || wrapped >= 0.97) {
-            return "New Moon";
+            return 0;
         } else if (wrapped < 0.22) {
-            return "Crescent";
+            return 1;
         } else if (wrapped < 0.28) {
-            return "Quarter";
+            return 2;
         } else if (wrapped < 0.47) {
-            return "Gibbous";
+            return 3;
         } else if (wrapped < 0.53) {
-            return "Full Moon";
+            return 4;
         } else if (wrapped < 0.72) {
-            return "Gibbous";
+            return 3;
         } else if (wrapped < 0.78) {
-            return "Quarter";
+            return 2;
         } else {
-            return "Crescent";
+            return 1;
         }
+    }
+
+    static function phaseName(wrapped as Lang.Float) as Lang.String {
+        var names = ["New Moon", "Crescent", "Quarter", "Gibbous", "Full Moon"];
+        return names[phaseIndex(wrapped)];
+    }
+
+    static function phaseNameForLanguage(wrapped as Lang.Float, language as Lang.Number, face as FaceText?) as Lang.String {
+        var idx = phaseIndex(wrapped);
+        if (face != null) {
+            return face.moonPhase(language, idx);
+        }
+        var names = ["New Moon", "Crescent", "Quarter", "Gibbous", "Full Moon"];
+        return names[idx];
     }
 
     static function tithiText(wrapped as Lang.Float) as Lang.String {

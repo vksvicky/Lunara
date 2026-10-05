@@ -118,7 +118,7 @@ class Dial {
 
         var phase = Dial.moonPhase(moment);
         var lunarMode = Application.Properties.getValue("LunarDisplayMode") as Lang.Number;
-        var lunarStr = LunarComplication.text(phase, lunarMode);
+        var lunarStr = LunarComplication.textForLanguage(phase, lunarMode, language, _face);
         if (lunarStr.length() > 0) {
             dc.setColor(ink, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx + LUNAR_INFO_X * radius, cy + LUNAR_INFO_Y * radius, legend, lunarStr, center);

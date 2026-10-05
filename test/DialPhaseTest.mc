@@ -33,6 +33,26 @@ class DialPhaseTest {
     }
 
     (:test)
+    static function testLunarComplicationMultilingual(logger as Test.Logger) as Lang.Boolean {
+        var face = new FaceText();
+        // French (language 2)
+        Test.assertEqual(LunarComplication.textForLanguage(0.00, LunarComplication.MODE_PHASE_NAME, 2, face), "Nlle Lune");
+        Test.assertEqual(LunarComplication.textForLanguage(0.50, LunarComplication.MODE_PHASE_NAME, 2, face), "Pleine Lune");
+        // Spanish (language 3)
+        Test.assertEqual(LunarComplication.textForLanguage(0.00, LunarComplication.MODE_PHASE_NAME, 3, face), "Luna Nueva");
+        Test.assertEqual(LunarComplication.textForLanguage(0.50, LunarComplication.MODE_PHASE_NAME, 3, face), "Luna Llena");
+        // Simplified Chinese (language 4)
+        Test.assertEqual(LunarComplication.textForLanguage(0.00, LunarComplication.MODE_PHASE_NAME, 4, face), "新月");
+        Test.assertEqual(LunarComplication.textForLanguage(0.50, LunarComplication.MODE_PHASE_NAME, 4, face), "满月");
+        // Japanese Kanji (language 6)
+        Test.assertEqual(LunarComplication.textForLanguage(0.10, LunarComplication.MODE_PHASE_NAME, 6, face), "三日月");
+        // German (language 11)
+        Test.assertEqual(LunarComplication.textForLanguage(0.00, LunarComplication.MODE_PHASE_NAME, 11, face), "Neumond");
+        Test.assertEqual(LunarComplication.textForLanguage(0.50, LunarComplication.MODE_PHASE_NAME, 11, face), "Vollmond");
+        return true;
+    }
+
+    (:test)
     static function testEpochIsANewMoon(logger as Test.Logger) as Lang.Boolean {
         var moment = new Time.Moment(NEW_MOON_EPOCH);
         var phase = Dial.moonPhase(moment);

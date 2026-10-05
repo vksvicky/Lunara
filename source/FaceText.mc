@@ -8,6 +8,7 @@ class FaceText {
     private var _automatic as Lang.Array<Lang.String>;
     private var _perpetualA as Lang.Array<Lang.String>;
     private var _perpetualB as Lang.Array<Lang.String>;
+    private var _moonPhases as Lang.Array<Lang.Array<Lang.String>>;
 
     function initialize() {
         _months = [
@@ -39,6 +40,19 @@ class FaceText {
         _automatic = ["AUTOMATIC", "AUTOMATIQUE", "AUTOMÁTICO", "自动", "自動", "自動", "じどう", "ジドウ", "", "AUTOMATICO", "AUTOMATIK"];
         _perpetualA = ["PERPETUAL", "PERPÉTUEL", "PERPETUO", "万年", "萬年", "永久", "えいきゅう", "エイキュウ", "", "PERPETUO", "EWIGER"];
         _perpetualB = ["CALENDAR", "CALENDRIER", "CALENDARIO", "日历", "日曆", "暦", "こよみ", "コヨミ", "", "CALENDARIO", "KALENDER"];
+        _moonPhases = [
+        ["New Moon", "Crescent", "Quarter", "Gibbous", "Full Moon"],
+        ["Nlle Lune", "Croissant", "Quartier", "Gibbeuse", "Pleine Lune"],
+        ["Luna Nueva", "Creciente", "Cuarto", "Gibosa", "Luna Llena"],
+        ["新月", "蛾眉月", "弦月", "凸月", "满月"],
+        ["新月", "蛾眉月", "弦月", "凸月", "滿月"],
+        ["新月", "三日月", "弦月", "凸月", "満月"],
+        ["しんげつ", "みかづき", "ゆみはり", "とつげつ", "まんげつ"],
+        ["シンゲツ", "ミカヅキ", "ユミハリ", "トツゲツ", "マンゲツ"],
+        ["", "", "", "", ""],
+        ["Luna Nuova", "Crescente", "Quarto", "Gibbosa", "Luna Piena"],
+        ["Neumond", "Sichel", "Viertel", "Dreiviertel", "Vollmond"]
+        ];
     }
 
     function month(languageId as Lang.Number, monthNumber as Lang.Number) as Lang.String {
@@ -58,6 +72,10 @@ class FaceText {
             return _perpetualA[languageId - 1];
         }
         return _perpetualB[languageId - 1];
+    }
+
+    function moonPhase(languageId as Lang.Number, phaseIndex as Lang.Number) as Lang.String {
+        return _moonPhases[languageId - 1][phaseIndex];
     }
 
     static function resolve(setting, systemLanguage) as Lang.Number {

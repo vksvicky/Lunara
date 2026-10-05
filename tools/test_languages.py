@@ -84,8 +84,10 @@ class LanguageCatalogTests(unittest.TestCase):
             self.assertEqual(len(lang.weekdays), 7, lang.key)
             self.assertGreater(len(lang.automatic), 0, lang.key)
             self.assertEqual(len(lang.perpetual), 2, lang.key)
+            self.assertEqual(len(lang.moon_phases), 5, lang.key)
             self.assertTrue(all(lang.months), lang.key)
             self.assertTrue(all(lang.weekdays), lang.key)
+            self.assertTrue(all(lang.moon_phases), lang.key)
 
     def test_japanese_offers_kanji_hiragana_and_katakana(self):
         by_key = {lang.key: lang for lang in LANGUAGES}
